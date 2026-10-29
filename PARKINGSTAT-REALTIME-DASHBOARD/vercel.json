@@ -10,17 +10,9 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "X-XSS-Protection", "value": "1; mode=block" }
       ]
-    },
-    {
-      "source": "/public/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-      ]
     }
   ],
   "rewrites": [
-    { "source": "/styles.css", "destination": "/public/styles.css" },
-    { "source": "/app.js", "destination": "/public/app.js" },
-    { "source": "/config.js", "destination": "/public/config.js" }
+    { "source": "/public/:match*", "destination": "/:match*" }
   ]
 }

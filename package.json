@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vercel dev",
-    "build": "node -e \"console.log('ParkFlow build check passed')\"",
+    "build": "node -e \"const fs=require('fs'); if(fs.existsSync('index.html')) fs.copyFileSync('index.html','public/index.html'); console.log('Index synced to public');\"",
     "start": "vercel dev"
   },
   "dependencies": {

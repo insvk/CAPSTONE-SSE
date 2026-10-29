@@ -9,3 +9,4 @@ export default function handler(req, res) {
     uptime_seconds: Math.floor(process.uptime())
   });
 }
+

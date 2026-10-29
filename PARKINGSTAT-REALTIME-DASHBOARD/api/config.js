@@ -14,3 +14,4 @@ export default function handler(req, res) {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ""
   });
 }
+

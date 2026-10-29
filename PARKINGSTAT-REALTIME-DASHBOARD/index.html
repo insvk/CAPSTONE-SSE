@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0b1220"><title>ParkFlow | Smart Parking</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/public/styles.css"></head>
+<link rel="stylesheet" href="/styles.css"></head>
 <body><aside class="sidebar"><a class="brand" href="#"><b class="logo">P</b><span><strong>PARKFLOW</strong><small>Intelligent Parking</small></span></a><p class="label">WORKSPACE</p>
 <nav><a class="active" href="#overview">▦ &nbsp; Overview</a><a href="#parking">▤ &nbsp; Live parking</a><a href="#analytics">⌁ &nbsp; Analytics</a><a href="#events">◷ &nbsp; Event history</a><a href="#health">⚙ &nbsp; System health</a></nav>
 <div class="device"><i id="deviceDot"></i><span><b id="deviceStatus">Waiting for device</b><small id="deviceSeen">No telemetry yet</small></span></div></aside>
@@ -20,4 +20,4 @@
 <div class="columns"><section class="panel" id="events"><div class="section-head"><div><small>AUDIT TRAIL</small><h2>Recent events</h2></div><button id="refresh">Refresh ↻</button></div><div id="eventList" class="events">No saved events yet.</div></section>
 <section class="panel" id="health"><div class="section-head"><div><small>DEVICE OBSERVABILITY</small><h2>System health</h2></div></div><div class="health"><p>Cloud database <b id="dbHealth">Checking</b></p><p>Realtime channel <b id="rtHealth">Connecting</b></p><p>ESP32 telemetry <b id="espHealth">Waiting</b></p><p>History <b id="historyHealth">Checking</b></p></div><div class="note">Gate command and physical gate position are different states. Real gates require local safety logic and manual override.</div></section></div>
 <footer>ParkFlow · IoT Parking Operations <span>Cloud telemetry · <b id="mode">Setup required</b></span></footer></section></main>
-<div id="toast" role="status"></div><script src="/public/config.js"></script><script type="module" src="/public/app.js"></script></body></html>
+<div id="toast" role="status"></div><script src="/config.js"></script><script type="module" src="/app.js"></script></body></html>
