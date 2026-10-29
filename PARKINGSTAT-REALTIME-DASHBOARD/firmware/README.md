@@ -12,10 +12,10 @@ Helper (adapt to your existing sketch):
 ```cpp
 #include <WiFi.h>
 #include <HTTPClient.h>
-const char* WIFI_SSID = "Naresh";
-const char* WIFI_PASSWORD = "9597asdf";
+const char* WIFI_SSID = "YOUR_WIFI_SSID";         // e.g. "Wokwi-GUEST" for Wokwi simulator
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"; // leave empty "" for Wokwi-GUEST
 const char* API_URL = "https://YOUR-VERCEL-DOMAIN/api/ingest";
-const char* DEVICE_TOKEN = "bcce6aa050a30a3e94542d64c064d4541c401408ea4112268d2b22449aedae6";
+const char* DEVICE_TOKEN = "YOUR_DEVICE_INGEST_TOKEN";
 
 void connectParkingWiFi() {
   WiFi.mode(WIFI_STA);

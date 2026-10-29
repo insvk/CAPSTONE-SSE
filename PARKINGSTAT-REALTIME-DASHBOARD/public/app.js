@@ -54,7 +54,19 @@ async function load(){
  events=er.data||[];gate=gr.data?.[0]||null;history=(hr.data||[]).reverse();render();
 }
 async function init(){
- const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+ let url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+ if(!url||!key||url.includes("YOUR_PROJECT")||key.includes("YOUR_SUPABASE")){
+  try{
+   const res=await fetch("/api/config");
+   if(res.ok){
+    const cfg=await res.json();
+    if(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY){
+     url=cfg.SUPABASE_URL;key=cfg.SUPABASE_ANON_KEY;
+     window.SUPABASE_URL=url;window.SUPABASE_ANON_KEY=key;
+    }
+   }
+  }catch(e){console.warn("Could not fetch /api/config:",e)}
+ }
  if(!url||!key||url.includes("YOUR_PROJECT")||key.includes("YOUR_SUPABASE")){$("connection").textContent="● Setup required";health("dbHealth","Not configured");health("rtHealth","Not configured");$("mode").textContent="Configuration required";return}
  try{
  db=createClient(url,key);await load();channel=db.channel("parkflow-live")

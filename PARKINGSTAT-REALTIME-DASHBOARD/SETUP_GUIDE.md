@@ -1,71 +1,116 @@
-# ParkFlow setup guide
+# ParkFlow Setup & Deployment Guide
 
-## Data flow
-ESP32/Wokwi -> HTTPS `POST /api/ingest` -> Supabase PostgreSQL -> Supabase Realtime -> browser dashboard.
+## 1. System Data Flow
+```
+ESP32 / Wokwi (Sensors)
+       │
+       ▼ HTTPS POST /api/ingest [Bearer Token]
+Vercel Serverless Function
+       │
+       ▼ PostgreSQL Upsert & Event Log
+Supabase Database
+       │
+       ▼ WebSocket Publication (supabase_realtime)
+ParkFlow Live Web Dashboard
+```
 
-## 1. Requirements
-Install Node.js LTS, Git and Vercel CLI (`npm install -g vercel`). Have a Supabase project and your Wokwi ESP32 project.
+---
 
-## 2. Supabase setup
-1. Check whether tables with these names already exist. Do not run this schema blindly against an existing production database.
-2. For a dedicated project, open Supabase SQL Editor and run `supabase/schema.sql`.
-3. In Database > Publications, confirm the listed tables are in `supabase_realtime`.
-4. Copy project URL and the public anon/publishable key from Supabase API settings.
-5. The SQL policy grants public read access to telemetry for this demo. For a private facility, replace these with authenticated, role-based RLS policies before production.
+## 2. Supabase Setup
 
-## 3. Browser configuration
-Copy `public/config.js.example` to `public/config.js`, then set `SUPABASE_URL` and the public anon/publishable key. Never put a service-role key or device token in browser config.
+1. Log in to [Supabase](https://supabase.com).
+2. Open your project's **SQL Editor** and execute the schema located in `supabase/schema.sql`.
+3. In **Database > Publications**, verify that `supabase_realtime` has the following tables enabled:
+   - `parking_slots`
+   - `sensor_readings`
+   - `parking_events`
+   - `gate_events`
+   - `occupancy_snapshots`
+4. Copy the following keys from **Project Settings > API**:
+   - **Project URL** (`SUPABASE_URL`)
+   - **anon / public key** (`SUPABASE_ANON_KEY`)
+   - **service_role secret key** (`SUPABASE_SERVICE_ROLE_KEY`)
 
-## 4. Server configuration
-Create `.env` from `.env.example`; set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and a long random `DEVICE_INGEST_TOKEN`. Add these three values to Vercel Project > Settings > Environment Variables. Do not commit `.env`.
+---
 
-Generate a token:
-- PowerShell: `[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`
-- macOS/Linux: `openssl rand -hex 32`
+## 3. Server Environment Variables (.env)
 
-## 5. Local run
-From this directory:
+Create a `.env` file locally (copied from `.env.example`):
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_secret_key
+SUPABASE_ANON_KEY=your_anon_public_key
+DEVICE_INGEST_TOKEN=your_device_ingest_token
+```
+
+To generate a secure 32-byte hexadecimal `DEVICE_INGEST_TOKEN`:
+- **PowerShell:** `[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`
+- **macOS / Linux:** `openssl rand -hex 32`
+
+---
+
+## 4. Local Testing
+
 ```bash
+# Install dependencies
 npm install
-npx vercel login
-npx vercel dev
+
+# Run local development server
+npm run dev
 ```
-Open the URL shown by Vercel CLI. Make sure `public/config.js` exists first.
 
-## 6. Deploy
-Push the repository to GitHub, import it in Vercel, add the server environment variables and deploy. Keep `public/config.js` private to your deployment workflow if you do not want the public project URL/key committed; remember the anon key is designed for browser use but still depends on correct RLS.
+Visit `http://localhost:3000` in your browser. The dashboard will automatically fetch public keys from `/api/config` or `public/config.js`.
 
-## 7. Test API from PowerShell
-Replace the URL and token:
+---
+
+## 5. Deploy to Vercel
+
+1. Push your changes to GitHub repository: `https://github.com/insvk/CAPSTONE-SSE`.
+2. Open the [Vercel Dashboard](https://vercel.com) and click **Add New... > Project**.
+3. Import your repository (`CAPSTONE-SSE`).
+4. In **Environment Variables**, add:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_ANON_KEY`
+   - `DEVICE_INGEST_TOKEN`
+5. Click **Deploy**.
+
+Vercel will automatically build the project, deploy the static dashboard, and configure the `/api/ingest`, `/api/config`, and `/api/health` Serverless Functions.
+
+---
+
+## 6. Testing Ingestion API
+
+You can verify the live deployment using PowerShell:
 ```powershell
-$body = @{ device_id="manual-test"; slot_id="S1"; distance_cm=22.5; occupied=$true; sensor_ok=$true } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "https://YOUR-VERCEL-DOMAIN/api/ingest" -Headers @{ Authorization="Bearer YOUR_DEVICE_INGEST_TOKEN" } -ContentType "application/json" -Body $body
+$headers = @{
+    "Authorization" = "Bearer YOUR_DEVICE_INGEST_TOKEN"
+    "Content-Type"  = "application/json"
+}
+
+$body = @{
+    device_id   = "wokwi-esp32-01"
+    slot_id     = "S1"
+    distance_cm = 22.5
+    occupied    = $true
+    sensor_ok   = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri "https://YOUR-VERCEL-DOMAIN.vercel.app/api/ingest" -Headers $headers -Body $body
 ```
-A successful response includes `ok: true`. Repeat for S1–S8 with fresh timestamps/readings. Dashboard counts are shown only when all eight readings are fresh (under 60 seconds).
 
-## 8. Connect Wokwi
-Follow `firmware/README.md`. Add Wi-Fi connection and HTTP POST calls to your existing sketch after occupancy state stabilization. The firmware helper is not a complete replacement for your existing sketch. Use the deployed API URL. Wokwi's common network is `Wokwi-GUEST` with no password; check current Wokwi network docs if connection fails.
+Expected response:
+```json
+{
+  "ok": true,
+  "slot_id": "S1",
+  "recorded_at": "2026-10-29T16:30:00.000Z"
+}
+```
 
-## 9. Verify end-to-end
-1. Open dashboard.
-2. POST S1 with 20 cm and occupied=true. Confirm S1 changes in the dashboard.
-3. POST S1 with 400 cm and occupied=false. Confirm S1 becomes available.
-4. Send fresh readings for all eight slots. Confirm counts and utilization appear.
-5. Stop sending readings. After 60 seconds the slots should become unknown/stale rather than being treated as available.
-6. Check browser console, Vercel function logs and Supabase logs if anything fails.
+Repeat for slots `S1` through `S8`. The dashboard will immediately update live via Supabase Realtime!
 
-## Important limitations
-- Gate UI reads `gate_events`, but this starter does not yet send gate-state telemetry. Add a server-validated gate-event path and report actual state, not just servo commands.
-- ML prediction is not trained or bundled. It is correctly shown as unavailable until a real model writes prediction records.
-- Public-read RLS is demo-only. Use Supabase Auth and tight policies for private installations.
-- A token embedded in firmware is demo-only, not strong production device identity.
-- Add rate limiting, device identity, alerting and audit controls before public production.
-- A physical gate needs local obstruction detection, emergency stop, manual override and a fail-safe design. Do not depend on cloud availability for safety.
-- Shared TRIG is a Wokwi pin-saving shortcut; trigger physical ultrasonic sensors sequentially to reduce cross-talk.
-- Physical HC-SR04 ECHO is typically 5V; use a voltage divider/level shifter for ESP32 inputs.
+---
 
-## Official docs
-- Supabase Realtime: https://supabase.com/docs/guides/realtime
-- Supabase RLS: https://supabase.com/docs/guides/database/postgres/row-level-security
-- Vercel Functions: https://vercel.com/docs/functions
-- Wokwi ESP32 Wi-Fi: https://docs.wokwi.com/guides/esp32-wifi
+## 7. Connecting Hardware / Wokwi Simulator
+Refer to [firmware/README.md](firmware/README.md) for sample C++ code snippets to embed in your ESP32 Arduino / ESP-IDF firmware.

@@ -1,1 +1,24 @@
-node_modules/\n.vercel/\n.env\n.env.*\npublic/config.js\n
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Vercel build outputs
+.vercel/
+.output/
+
+# Environment files (NEVER commit secrets!)
+.env
+.env.*
+!.env.example
+
+# Local overrides
+public/config.js
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

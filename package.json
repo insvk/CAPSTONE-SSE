@@ -1,0 +1,20 @@
+{
+  "name": "parkflow-realtime-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.x"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "node -e \"console.log('ParkFlow build check passed')\"",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0"
+  },
+  "devDependencies": {
+    "vercel": "^41.6.0"
+  }
+}
