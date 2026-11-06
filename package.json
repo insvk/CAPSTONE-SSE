@@ -1,0 +1,25 @@
+{
+  "name": "csa0201-b-capstone-imbs",
+  "version": "1.0.0",
+  "description": "High-Performance Enterprise Inventory Management & Billing System with Tabler Dark UI, C-First Domain Logic, and PostgreSQL/Supabase Persistence",
+  "main": "api/index.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "start": "node api/index.js"
+  },
+  "keywords": [
+    "inventory-management",
+    "billing-system",
+    "pos",
+    "c-first",
+    "supabase",
+    "vercel",
+    "tabler-dark-ui"
+  ],
+  "author": "CSA0201 Capstone Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

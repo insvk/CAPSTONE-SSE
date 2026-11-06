@@ -1,0 +1,325 @@
+/**
+ * POS Terminal & Tax Invoice Styling
+ * High-Speed Cashier Interface with Thermal & A4 Print Layouts
+ */
+
+.pos-container {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 20px;
+    height: calc(100vh - 150px);
+}
+
+.pos-catalog-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+}
+
+.pos-search-bar {
+    display: flex;
+    gap: 12px;
+}
+
+.pos-category-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.pos-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--tblr-card-bg);
+    border: 1px solid var(--tblr-border-color);
+    color: var(--tblr-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--tblr-transition);
+}
+
+.pos-pill.active, .pos-pill:hover {
+    background: var(--tblr-primary);
+    color: #ffffff;
+    border-color: var(--tblr-primary);
+}
+
+.pos-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.pos-product-card {
+    background: var(--tblr-card-bg);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-radius);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: var(--tblr-transition);
+}
+
+.pos-product-card:hover {
+    border-color: var(--tblr-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pos-product-sku {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tblr-text-muted);
+    text-transform: uppercase;
+}
+
+.pos-product-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 4px 0 8px 0;
+    line-height: 1.3;
+}
+
+.pos-product-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
+.pos-product-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--tblr-primary);
+}
+
+.pos-product-stock {
+    font-size: 11px;
+    color: var(--tblr-text-muted);
+}
+
+/* POS Cart Panel */
+.pos-cart-panel {
+    background: var(--tblr-card-bg);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-radius);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--tblr-shadow);
+    overflow: hidden;
+}
+
+.pos-cart-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--tblr-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pos-cart-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.pos-cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pos-cart-item {
+    background: var(--tblr-card-bg-subtle);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-radius-sm);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pos-item-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.pos-item-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pos-qty-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pos-qty-btn {
+    width: 24px;
+    height: 24px;
+    background: var(--tblr-card-bg);
+    border: 1px solid var(--tblr-border-color);
+    color: #ffffff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.pos-qty-val {
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+}
+
+.pos-item-total {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tblr-success);
+}
+
+.pos-cart-summary {
+    padding: 16px;
+    border-top: 1px solid var(--tblr-border-color);
+    background: var(--tblr-card-bg-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pos-summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--tblr-text-secondary);
+}
+
+.pos-summary-row.total {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    border-top: 1px dashed var(--tblr-border-color);
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.pos-checkout-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--tblr-success);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--tblr-radius-sm);
+    cursor: pointer;
+    transition: var(--tblr-transition);
+    margin-top: 4px;
+}
+
+.pos-checkout-btn:hover {
+    background: #279e3c;
+}
+
+/* Invoice Detailed Print Template */
+.invoice-print-container {
+    background: #ffffff;
+    color: #000000;
+    padding: 30px;
+    border-radius: 8px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.invoice-header-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+}
+
+.invoice-company-title {
+    font-size: 20px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.invoice-meta-block {
+    text-align: right;
+}
+
+.invoice-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #206bc4;
+}
+
+.invoice-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.invoice-print-table th {
+    background: #f1f5f9;
+    color: #000000;
+    border: 1px solid #cbd5e1;
+    padding: 8px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.invoice-print-table td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #000000;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .invoice-print-modal, .invoice-print-modal * {
+        visibility: visible;
+    }
+    .invoice-print-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    .tblr-modal-backdrop {
+        background: none !important;
+        position: static !important;
+    }
+    .tblr-modal-header, .tblr-modal-footer, .tblr-navbar {
+        display: none !important;
+    }
+}
+

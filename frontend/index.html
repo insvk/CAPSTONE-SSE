@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabler - CSA0201-B-CAPSTONE-IMBS (C-First Architecture)</title>
+    <link rel="stylesheet" href="/css/tabler-theme.css">
+    <link rel="stylesheet" href="/css/pos.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><rect width='24' height='24' rx='6' fill='%23206bc4'/><path d='M7 9l4 3-4 3' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M13 15h4' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/></svg>">
+</head>
+<body>
+
+    <!-- 1. Top Navbar (Faithful Tabler Reference Header) -->
+    <header class="tblr-navbar">
+        <div class="tblr-navbar-inner">
+            <!-- Brand -->
+            <a href="#" class="tblr-brand" onclick="App.navigateTo('dashboard'); return false;">
+                <div class="tblr-brand-icon">&gt;_</div>
+                <span>tabler</span>
+            </a>
+
+            <!-- Nav Links -->
+            <ul class="tblr-nav-menu">
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link active" data-view="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                        Dashboards ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="products">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        Interface ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="procurement">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Forms ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="pos">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Extra ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="inventory">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Layout ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="invoices">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Plugins ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="accounting">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>
+                        Addons ▾
+                    </a>
+                </li>
+                <li class="tblr-nav-item">
+                    <a href="#" class="tblr-nav-link" data-view="c_inspector">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Help ▾
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Navbar Right Actions -->
+            <div class="tblr-navbar-actions">
+                <!-- Theme Toggle -->
+                <button id="btn-theme-toggle" class="tblr-icon-btn" title="Toggle theme">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                </button>
+
+                <!-- Notifications -->
+                <button class="tblr-icon-btn" title="Notifications" onclick="App.showToast('You have 5 new messages and 2 new audit notifications.', 'info')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="tblr-badge-dot"></span>
+                </button>
+
+                <!-- Grid App Launcher -->
+                <button class="tblr-icon-btn" title="Applications" onclick="App.navigateTo('pos')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                </button>
+
+                <!-- Language Pill -->
+                <span class="tblr-lang-pill">EN</span>
+
+                <!-- Supabase & Vercel Cloud Sync Pill -->
+                <button id="btn-cloud-modal" class="tblr-cloud-pill" title="Supabase & Vercel Cloud Configuration" onclick="App.openCloudModal()">
+                    <span class="tblr-status-dot-emerald"></span>
+                    <span>Cloud: Ready</span>
+                </button>
+
+                <!-- User Profile (Paweł Kuna - UI Designer) -->
+                <div class="tblr-user-profile" onclick="App.showToast('Signed in as Paweł Kuna (SUPER_ADMIN role)', 'success')">
+                    <div class="tblr-avatar">
+                        <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                            <rect width="34" height="34" fill="#33445c"/>
+                            <circle cx="17" cy="13" r="6" fill="#f8fafc"/>
+                            <path d="M7 28C7 22.4772 11.4772 18 17 18C22.5228 18 27 22.4772 27 28" fill="#f8fafc"/>
+                        </svg>
+                    </div>
+                    <div class="tblr-user-info">
+                        <span class="tblr-user-name">Paweł Kuna</span>
+                        <span class="tblr-user-title">UI Designer</span>
+                    </div>
+                </div>
+
+                <!-- Customize -->
+                <div style="font-size: 13px; color: var(--tblr-text-secondary); display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="App.navigateTo('c_inspector')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Customize
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Page Container -->
+    <main class="tblr-page">
+        <!-- Page Header -->
+        <div class="tblr-page-header">
+            <div>
+                <div id="page-pretitle" class="tblr-page-pretitle">OVERVIEW</div>
+                <h1 id="page-title" class="tblr-page-title">Dashboard</h1>
+            </div>
+            <div class="tblr-page-actions">
+                <button class="tblr-btn tblr-btn-default" onclick="App.showToast('View preferences updated.', 'info')">
+                    New view
+                </button>
+                <button id="page-action-btn" class="tblr-btn tblr-btn-primary">
+                    + Create new report
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Main Content -->
+        <div id="main-content"></div>
+    </main>
+
+    <!-- Cloud Architecture & Supabase Settings Modal -->
+    <div id="modal-cloud-settings" class="tblr-modal-backdrop" style="display: none;">
+        <div class="tblr-modal-dialog" style="max-width: 600px;">
+            <div class="tblr-modal-header">
+                <div>
+                    <h3 class="tblr-modal-title">Cloud Deployment & Supabase Settings</h3>
+                    <div style="font-size: 12px; color: var(--tblr-text-muted); margin-top: 2px;">
+                        Configure direct Supabase database synchronization and Vercel routing
+                    </div>
+                </div>
+                <button class="tblr-modal-close" onclick="App.closeCloudModal()">✕</button>
+            </div>
+            <div class="tblr-modal-body">
+                <div class="tblr-cloud-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #fff;">Deployment Topology</span>
+                        <span class="tblr-badge tblr-badge-blue">Hybrid C + Cloud</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--tblr-text-secondary); line-height: 1.5;">
+                        • <strong>Frontend:</strong> Hosted on Vercel Global Edge CDN with zero cold-starts.<br>
+                        • <strong>Backend:</strong> Native compiled C server (:8080) or Vercel Serverless Function (/api/v1).<br>
+                        • <strong>Database:</strong> PostgreSQL 16 on Supabase with 40+ 3NF tables & RLS policies.
+                    </div>
+                </div>
+
+                <div class="tblr-form-group">
+                    <label class="tblr-form-label">Supabase Project URL</label>
+                    <input type="text" id="cfg-supabase-url" class="tblr-form-control" placeholder="https://your-project-ref.supabase.co" />
+                    <div style="font-size: 11px; color: var(--tblr-text-muted); margin-top: 4px;">Found in Supabase Console &gt; Project Settings &gt; API</div>
+                </div>
+
+                <div class="tblr-form-group">
+                    <label class="tblr-form-label">Supabase Anon Public API Key</label>
+                    <input type="password" id="cfg-supabase-anon-key" class="tblr-form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+                    <div style="font-size: 11px; color: var(--tblr-text-muted); margin-top: 4px;">Frontend-safe public key (never share the service-role secret)</div>
+                </div>
+
+                <div class="tblr-form-group">
+                    <label class="tblr-form-label">Backend API URL Override (Optional)</label>
+                    <input type="text" id="cfg-backend-url" class="tblr-form-control" placeholder="Leave empty for auto-detect or http://127.0.0.1:8080" />
+                    <div style="font-size: 11px; color: var(--tblr-text-muted); margin-top: 4px;">Target URL of native C backend if running on Docker, Railway, or VM</div>
+                </div>
+
+                <div id="cloud-test-result" style="display: none; padding: 10px 14px; border-radius: 4px; font-size: 12px; margin-top: 8px;"></div>
+            </div>
+            <div class="tblr-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="tblr-btn tblr-btn-default" onclick="App.testCloudConnection()">
+                    Test Connection
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="tblr-btn tblr-btn-default" onclick="App.clearCloudConfig()">
+                        Reset
+                    </button>
+                    <button type="button" class="tblr-btn tblr-btn-primary" onclick="App.saveCloudConfig()">
+                        Save & Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/charts.js"></script>
+    <script src="/js/supabase_client.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/views/dashboard.js"></script>
+    <script src="/js/views/products.js"></script>
+    <script src="/js/views/inventory.js"></script>
+    <script src="/js/views/pos.js"></script>
+    <script src="/js/views/invoices.js"></script>
+    <script src="/js/views/procurement.js"></script>
+    <script src="/js/views/accounting.js"></script>
+    <script src="/js/views/c_inspector.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
+

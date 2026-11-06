@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: imbs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: csa0201_imbs
+      POSTGRES_USER: imbs_admin
+      POSTGRES_PASSWORD: imbs_secret_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ../database/seeds/001_initial_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U imbs_admin -d csa0201_imbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - imbs_network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    container_name: imbs_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: csa0201_imbs
+      DB_USER: imbs_admin
+      DB_PASSWORD: imbs_secret_password
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - imbs_network
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  imbs_network:
+    driver: bridge
+

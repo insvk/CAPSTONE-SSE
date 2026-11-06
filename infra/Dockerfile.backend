@@ -1,0 +1,57 @@
+# ==============================================================================
+# Multi-Stage Dockerfile for CSA0201-B-CAPSTONE-IMBS Native C Backend & Static Server
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Stage 1: Build & Verify Test Suite
+# ------------------------------------------------------------------------------
+FROM alpine:3.19 AS builder
+
+RUN apk add --no-cache gcc musl-dev make libc-dev
+
+WORKDIR /workspace
+
+# Copy backend source and include files
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+
+# Create output binary directory
+RUN mkdir -p ./backend/bin
+
+# Compile C-First Domain Engine Unit Test Suite
+RUN gcc -O2 -Wall -Wextra -I./backend/include \
+    ./backend/src/domain/*.c ./backend/tests/unit/test_domain_engine.c \
+    -o ./backend/bin/test_domain_engine
+
+# Run Unit Tests during build; fail image creation if any test fails
+RUN ./backend/bin/test_domain_engine
+
+# Compile Native C HTTP REST Backend & Static Asset Server
+RUN gcc -O3 -Wall -Wextra -I./backend/include \
+    ./backend/src/cJSON.c ./backend/src/config.c ./backend/src/domain/*.c \
+    ./backend/src/db/db_adapter.c ./backend/src/http_server.c ./backend/src/main.c \
+    -o ./backend/bin/imbs_srv
+
+# ------------------------------------------------------------------------------
+# Stage 2: Lean Production Runtime Container
+# ------------------------------------------------------------------------------
+FROM alpine:3.19 AS runner
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+
+# Copy binary and frontend assets from builder
+COPY --from=builder /workspace/backend/bin/imbs_srv /app/imbs_srv
+COPY --from=builder /workspace/frontend /app/frontend
+
+# Create non-root user for security
+RUN addgroup -S imbsgroup && adduser -S imbsuser -G imbsgroup
+USER imbsuser
+
+# Expose HTTP port
+EXPOSE 8080
+
+# Run native C server
+ENTRYPOINT ["/app/imbs_srv", "8080"]
+

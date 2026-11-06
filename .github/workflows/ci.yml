@@ -1,0 +1,82 @@
+name: IMBS CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build & Test C-First Domain Engine (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup GCC & Build Tools (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make
+
+      - name: Setup MinGW GCC (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-gcc make
+
+      - name: Compile and Run C Domain Unit Tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p backend/bin
+          gcc -O2 -Wall -Wextra -I./backend/include \
+            ./backend/src/domain/*.c ./backend/tests/unit/test_domain_engine.c \
+            -o ./backend/bin/test_domain_engine
+          ./backend/bin/test_domain_engine
+
+      - name: Compile and Run C Domain Unit Tests (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          mkdir -p backend/bin
+          gcc -O2 -Wall -Wextra -I./backend/include \
+            ./backend/src/domain/*.c ./backend/tests/unit/test_domain_engine.c \
+            -o ./backend/bin/test_domain_engine.exe
+          ./backend/bin/test_domain_engine.exe
+
+      - name: Compile Native C HTTP REST Server (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          gcc -O3 -Wall -Wextra -I./backend/include \
+            ./backend/src/cJSON.c ./backend/src/config.c ./backend/src/domain/*.c \
+            ./backend/src/db/db_adapter.c ./backend/src/http_server.c ./backend/src/main.c \
+            -o ./backend/bin/imbs_srv
+
+      - name: Compile Native C HTTP REST Server (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          gcc -O3 -Wall -Wextra -I./backend/include \
+            ./backend/src/cJSON.c ./backend/src/config.c ./backend/src/domain/*.c \
+            ./backend/src/db/db_adapter.c ./backend/src/http_server.c ./backend/src/main.c \
+            -lws2_32 -o ./backend/bin/imbs_srv.exe
+
+  docker-verification:
+    name: Docker Multi-Stage Image Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -f infra/Dockerfile.backend -t imbs-c-backend:latest .
+
