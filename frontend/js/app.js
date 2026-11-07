@@ -72,8 +72,9 @@ const App = {
         if (!user) return;
 
         const name = user.full_name || 'Naresh S';
-        const email = user.email || 'admin@apex.com';
+        const email = user.email || 'admin@sse.inv.com';
         const role = user.role || 'SUPER_ADMIN';
+        const avatarUrl = user.avatar_url;
 
         const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'NS';
 
@@ -84,7 +85,13 @@ const App = {
 
         if (sideName) sideName.innerText = name;
         if (sideEmail) sideEmail.innerText = email;
-        if (sideAvatar) sideAvatar.innerText = initials;
+        if (sideAvatar) {
+            if (avatarUrl) {
+                sideAvatar.innerHTML = `<img src="${avatarUrl}" alt="${name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerText='${initials}'">`;
+            } else {
+                sideAvatar.innerText = initials;
+            }
+        }
 
         // Update Modal User Card
         const menuName = document.getElementById('user-menu-name');
@@ -94,8 +101,115 @@ const App = {
 
         if (menuName) menuName.innerText = name;
         if (menuEmail) menuEmail.innerText = email;
-        if (menuAvatar) menuAvatar.innerText = initials;
+        if (menuAvatar) {
+            if (avatarUrl) {
+                menuAvatar.innerHTML = `<img src="${avatarUrl}" alt="${name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerText='${initials}'">`;
+            } else {
+                menuAvatar.innerText = initials;
+            }
+        }
         if (menuRole) menuRole.innerText = role;
+    },
+
+    openEditMyProfileModal() {
+        this.closeUserMenu();
+        const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        if (!user) return;
+
+        const modal = document.getElementById('modal-edit-my-profile');
+        if (!modal) return;
+
+        const nameInput = document.getElementById('my-profile-name');
+        const titleInput = document.getElementById('my-profile-title');
+        const avatarInput = document.getElementById('my-profile-avatar-url');
+
+        if (nameInput) nameInput.value = user.full_name || '';
+        if (titleInput) titleInput.value = user.job_title || '';
+        if (avatarInput) avatarInput.value = user.avatar_url || '';
+
+        this.updateMyAvatarPreview(user.avatar_url);
+        modal.style.display = 'flex';
+    },
+
+    closeEditMyProfileModal() {
+        const modal = document.getElementById('modal-edit-my-profile');
+        if (modal) modal.style.display = 'none';
+    },
+
+    setMyAvatarPreset(url) {
+        const input = document.getElementById('my-profile-avatar-url');
+        if (input) {
+            input.value = url;
+            this.updateMyAvatarPreview(url);
+        }
+    },
+
+    updateMyAvatarPreview(url) {
+        const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        const initials = user && user.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'NS';
+        const img = document.getElementById('my-profile-img-preview');
+        const init = document.getElementById('my-profile-init-preview');
+
+        if (url && url.trim()) {
+            if (img) {
+                img.src = url.trim();
+                img.style.display = 'block';
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    if (init) init.style.display = 'flex';
+                };
+            }
+            if (init) init.style.display = 'none';
+        } else {
+            if (img) img.style.display = 'none';
+            if (init) {
+                init.innerText = initials;
+                init.style.display = 'flex';
+            }
+        }
+    },
+
+    async saveMyProfile(e) {
+        e.preventDefault();
+        const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        if (!user) return;
+
+        const btn = document.getElementById('btn-save-my-profile');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Saving to Supabase...';
+        }
+
+        const fullName = document.getElementById('my-profile-name')?.value.trim();
+        const jobTitle = document.getElementById('my-profile-title')?.value.trim();
+        const avatarUrl = document.getElementById('my-profile-avatar-url')?.value.trim();
+
+        try {
+            await window.SupabaseClient.updateUserProfile(user.id, {
+                full_name: fullName,
+                job_title: jobTitle,
+                avatar_url: avatarUrl
+            });
+
+            this.closeEditMyProfileModal();
+            this.showToast('✓ Profile and avatar updated in Supabase cloud!', 'success');
+            this.updateUserDisplay();
+
+            // Refresh current view if it's staff or dashboard
+            if (this.currentView === 'staff' && window.StaffView) {
+                window.StaffView.render(document.getElementById('main-content'));
+            } else if (this.currentView === 'dashboard' && window.DashboardView) {
+                window.DashboardView.render(document.getElementById('main-content'));
+            }
+        } catch (err) {
+            console.error("Save my profile error", err);
+            this.showToast("Failed to save profile: " + err.message, "danger");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = '✓ Save Profile & Photo';
+            }
+        }
     },
 
     navigateTo(viewName) {

@@ -129,7 +129,7 @@ const SupabaseClient = {
 
         // 1. Query Supabase PostgreSQL for verified user and assigned role
         try {
-            const query = `user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,full_name,email,job_title,organization_id,branch_id,user_roles(roles(code,name))`;
+            const query = `user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,full_name,email,job_title,avatar_url,organization_id,branch_id,user_roles(roles(code,name))`;
             const users = await this.restRequest(query);
 
             if (users && users.length > 0) {
@@ -146,6 +146,7 @@ const SupabaseClient = {
                     email: u.email,
                     full_name: u.full_name,
                     job_title: u.job_title || roleName,
+                    avatar_url: u.avatar_url || null,
                     role: roleCode,
                     role_name: roleName,
                     organization_id: u.organization_id || "00000000-0000-0000-0000-000000000001"
@@ -165,6 +166,7 @@ const SupabaseClient = {
                 id: '30000000-0000-0000-0000-000000000002',
                 full_name: 'Naresh S',
                 job_title: 'Lead Administrator',
+                avatar_url: null,
                 role: 'SUPER_ADMIN',
                 role_name: 'Super Administrator'
             },
@@ -172,6 +174,7 @@ const SupabaseClient = {
                 id: '30000000-0000-0000-0000-000000000003',
                 full_name: 'Vikram Mehta',
                 job_title: 'Warehouse Logistics Lead',
+                avatar_url: null,
                 role: 'INVENTORY_MANAGER',
                 role_name: 'Inventory Manager'
             },
@@ -179,6 +182,7 @@ const SupabaseClient = {
                 id: '30000000-0000-0000-0000-000000000004',
                 full_name: 'Pooja Reddy',
                 job_title: 'Procurement & Store Manager',
+                avatar_url: null,
                 role: 'STORE_MANAGER',
                 role_name: 'Store Manager'
             },
@@ -186,6 +190,7 @@ const SupabaseClient = {
                 id: '30000000-0000-0000-0000-000000000005',
                 full_name: 'Aman Verma',
                 job_title: 'Head Billing Cashier',
+                avatar_url: null,
                 role: 'CASHIER',
                 role_name: 'POS Cashier'
             },
@@ -193,6 +198,7 @@ const SupabaseClient = {
                 id: '30000000-0000-0000-0000-000000000006',
                 full_name: 'Sneha Nair',
                 job_title: 'Statutory Auditor & Compliance',
+                avatar_url: null,
                 role: 'AUDITOR',
                 role_name: 'Auditor & Compliance'
             }
@@ -287,7 +293,7 @@ const SupabaseClient = {
     // STAFF & RBAC USER MANAGEMENT
     // --------------------------------------------------------------------------
     async getStaff() {
-        const query = 'user_profiles?select=id,full_name,email,job_title,is_active,created_at,user_roles(roles(code,name))&order=full_name.asc';
+        const query = 'user_profiles?select=id,full_name,email,job_title,avatar_url,is_active,created_at,user_roles(roles(code,name))&order=full_name.asc';
         const res = await this.restRequest(query);
         return (res || []).map(u => {
             const roleObj = (u.user_roles && u.user_roles[0] && u.user_roles[0].roles) ? u.user_roles[0].roles : { code: 'STAFF', name: 'Staff Member' };
@@ -296,12 +302,67 @@ const SupabaseClient = {
                 full_name: u.full_name,
                 email: u.email,
                 job_title: u.job_title || 'Staff Member',
+                avatar_url: u.avatar_url || null,
                 role: roleObj.code,
                 role_name: roleObj.name,
                 is_active: u.is_active,
                 created_at: u.created_at
             };
         });
+    },
+
+    async updateUserProfile(userId, data) {
+        const payload = {};
+        if (data.full_name !== undefined) payload.full_name = data.full_name.trim();
+        if (data.job_title !== undefined) payload.job_title = data.job_title.trim();
+        if (data.avatar_url !== undefined) payload.avatar_url = data.avatar_url ? data.avatar_url.trim() : null;
+        if (data.is_active !== undefined) payload.is_active = Boolean(data.is_active);
+        payload.updated_at = new Date().toISOString();
+
+        const res = await this.restRequest(`user_profiles?id=eq.${encodeURIComponent(userId)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+        });
+
+        // Update role if requested
+        if (data.role) {
+            try {
+                const roles = await this.restRequest(`roles?code=eq.${encodeURIComponent(data.role)}`);
+                if (roles && roles.length > 0) {
+                    await this.restRequest(`user_roles?user_id=eq.${encodeURIComponent(userId)}`, {
+                        method: 'DELETE'
+                    }).catch(() => {});
+                    await this.restRequest('user_roles', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            user_id: userId,
+                            role_id: roles[0].id
+                        })
+                    }).catch(() => {});
+                }
+            } catch (err) {
+                console.warn("[Role update warning]", err);
+            }
+        }
+
+        // Synchronize local session if updating currently logged in user
+        const currentUser = this.getCurrentUser();
+        if (currentUser && currentUser.id === userId) {
+            if (payload.full_name) currentUser.full_name = payload.full_name;
+            if (payload.job_title) currentUser.job_title = payload.job_title;
+            if (payload.avatar_url !== undefined) currentUser.avatar_url = payload.avatar_url;
+            if (data.role) {
+                currentUser.role = data.role;
+                currentUser.role_name = data.role_name || data.role;
+            }
+            this.setCurrentUser(currentUser);
+            if (window.App && window.App.updateUserDisplay) {
+                window.App.updateUserDisplay();
+            }
+        }
+
+        await this.logAudit("UPDATE", "USER_PROFILE", userId, `Updated staff profile: ${payload.full_name || userId}`);
+        return res && res.length > 0 ? res[0] : payload;
     },
 
     async createStaff(data) {
@@ -313,6 +374,7 @@ const SupabaseClient = {
             email: data.email.trim(),
             full_name: data.full_name.trim(),
             job_title: data.job_title || "Staff Member",
+            avatar_url: data.avatar_url ? data.avatar_url.trim() : null,
             is_active: true
         };
         const res = await this.restRequest('user_profiles', {

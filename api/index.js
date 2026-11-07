@@ -575,7 +575,41 @@ module.exports = async (req, res) => {
         }
 
         // --- 8. STAFF & RBAC USERS ---
-        if (pathname === 'staff' || pathname === 'users') {
+        if (pathname === 'staff' || pathname === 'users' || pathname.startsWith('staff/')) {
+            if (req.method === 'PATCH') {
+                const targetId = pathname.startsWith('staff/') ? pathname.replace('staff/', '') : (body.id || body.user_id);
+                if (!targetId) {
+                    return res.writeHead(400).end(JSON.stringify({ error: "Missing staff id for update." }));
+                }
+                const updatePayload = {};
+                if (body.full_name !== undefined) updatePayload.full_name = body.full_name.trim();
+                if (body.job_title !== undefined) updatePayload.job_title = body.job_title.trim();
+                if (body.avatar_url !== undefined) updatePayload.avatar_url = body.avatar_url ? body.avatar_url.trim() : null;
+                if (body.is_active !== undefined) updatePayload.is_active = Boolean(body.is_active);
+                updatePayload.updated_at = new Date().toISOString();
+
+                const updated = await supaRest(`user_profiles?id=eq.${encodeURIComponent(targetId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(updatePayload)
+                });
+
+                if (body.role_code || body.role) {
+                    const rCode = body.role_code || body.role;
+                    const roles = await supaRest(`roles?code=eq.${encodeURIComponent(rCode)}`);
+                    if (roles && roles[0]) {
+                        await supaRest(`user_roles?user_id=eq.${encodeURIComponent(targetId)}`, {
+                            method: 'DELETE'
+                        }).catch(() => {});
+                        await supaRest('user_roles', {
+                            method: 'POST',
+                            body: JSON.stringify({ user_id: targetId, role_id: roles[0].id })
+                        }).catch(() => {});
+                    }
+                }
+
+                return res.writeHead(200).end(JSON.stringify({ success: true, data: updated && updated[0] ? updated[0] : updatePayload }));
+            }
+
             if (req.method === 'POST') {
                 const userId = `30000000-0000-0000-0000-${Date.now().toString().slice(-12).padStart(12, '0')}`;
                 const createdUser = await supaRest('user_profiles', {
@@ -587,12 +621,14 @@ module.exports = async (req, res) => {
                         email: (body.email || "").trim(),
                         full_name: (body.full_name || "Staff Member").trim(),
                         job_title: body.job_title || "Staff",
+                        avatar_url: body.avatar_url ? body.avatar_url.trim() : null,
                         is_active: true
                     })
                 });
 
-                if (body.role_code) {
-                    const roles = await supaRest(`roles?code=eq.${body.role_code}`);
+                if (body.role_code || body.role) {
+                    const rCode = body.role_code || body.role;
+                    const roles = await supaRest(`roles?code=eq.${encodeURIComponent(rCode)}`);
                     if (roles && roles[0]) {
                         await supaRest('user_roles', {
                             method: 'POST',
@@ -604,7 +640,7 @@ module.exports = async (req, res) => {
                 return res.writeHead(201).end(JSON.stringify({ success: true, data: createdUser[0] }));
             }
 
-            const rows = await supaRest('user_profiles?select=id,full_name,email,job_title,is_active,created_at,user_roles(roles(code,name))&order=full_name.asc');
+            const rows = await supaRest('user_profiles?select=id,full_name,email,job_title,avatar_url,is_active,created_at,user_roles(roles(code,name))&order=full_name.asc');
             const staff = (rows || []).map(u => {
                 const roleObj = (u.user_roles && u.user_roles[0] && u.user_roles[0].roles) ? u.user_roles[0].roles : { code: 'STAFF', name: 'Staff Member' };
                 return {
@@ -612,6 +648,7 @@ module.exports = async (req, res) => {
                     full_name: u.full_name,
                     email: u.email,
                     job_title: u.job_title || 'Staff Member',
+                    avatar_url: u.avatar_url || null,
                     role: roleObj.code,
                     role_name: roleObj.name,
                     is_active: u.is_active,

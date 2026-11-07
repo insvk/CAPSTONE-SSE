@@ -298,6 +298,10 @@
 
                 <div
                     style="margin-top: 24px; border-top: 1px solid #222226; padding-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+                    <button class="shadcn-btn-primary" style="width: 100%; justify-content: center;"
+                        onclick="App.openEditMyProfileModal()">
+                        ✏️ Edit My Profile & Photo
+                    </button>
                     <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center;"
                         onclick="App.navigateTo('staff'); App.closeUserMenu();">
                         Manage Staff & Roles
@@ -313,6 +317,73 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- User Self-Service Profile & Avatar Editing Modal -->
+    <div id="modal-edit-my-profile" class="tblr-modal-backdrop" style="display: none;">
+        <div class="tblr-modal-dialog"
+            style="max-width: 480px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+            <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                <div>
+                    <h3 class="tblr-modal-title" style="color: #fff; margin: 0; font-size: 16px;">Edit My Profile & Photo</h3>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        Update your employee display name, job title, and profile picture (PFP)
+                    </div>
+                </div>
+                <button class="tblr-modal-close" onclick="App.closeEditMyProfileModal()">✕</button>
+            </div>
+            <form onsubmit="App.saveMyProfile(event)">
+                <div class="tblr-modal-body" style="padding: 20px;">
+                    <!-- Avatar Preview & Preset Selection -->
+                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 18px; padding: 12px; background: #18181c; border: 1px solid #27272a; border-radius: 8px;">
+                        <div id="my-profile-preview-box" style="width: 58px; height: 58px; border-radius: 50%; overflow: hidden; background: #27272a; border: 2px solid #3f3f46; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <span id="my-profile-init-preview" style="color: #fff; font-weight: 700; font-size: 18px;">NS</span>
+                            <img src="" id="my-profile-img-preview" style="display: none; width: 100%; height: 100%; object-fit: cover;" />
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; font-weight: 600; color: #fff; margin-bottom: 4px;">Choose a Preset or Custom URL</div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="padding: 2px 8px; font-size: 11px;" onclick="App.setMyAvatarPreset('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150')">
+                                    Executive
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="padding: 2px 8px; font-size: 11px;" onclick="App.setMyAvatarPreset('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150')">
+                                    Leader
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="padding: 2px 8px; font-size: 11px;" onclick="App.setMyAvatarPreset('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150')">
+                                    Specialist
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="padding: 2px 8px; font-size: 11px;" onclick="App.setMyAvatarPreset('https://api.dicebear.com/7.x/bottts/svg?seed=Staff')">
+                                    Modern 3D
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Profile Photo / Avatar URL</label>
+                        <input type="url" id="my-profile-avatar-url" class="shadcn-input" placeholder="https://... or choose preset above" oninput="App.updateMyAvatarPreview(this.value)" />
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Full Name *</label>
+                        <input type="text" id="my-profile-name" class="shadcn-input" placeholder="e.g. Naresh S" required />
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Job Title</label>
+                        <input type="text" id="my-profile-title" class="shadcn-input" placeholder="e.g. Lead Administrator" />
+                    </div>
+
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                        Synchronizes immediately to Supabase PostgreSQL 17 cloud database and persists across all sessions.
+                    </div>
+                </div>
+                <div class="tblr-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid #222226;">
+                    <button type="button" class="shadcn-btn-secondary" onclick="App.closeEditMyProfileModal()">Cancel</button>
+                    <button type="submit" id="btn-save-my-profile" class="shadcn-btn-primary">✓ Save Profile & Photo</button>
+                </div>
+            </form>
         </div>
     </div>
 

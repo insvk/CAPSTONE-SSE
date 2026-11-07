@@ -22,9 +22,12 @@ const DashboardView = {
         `;
 
         try {
-            const stats = await window.SupabaseClient.getDashboardStats();
+            const [stats, staff] = await Promise.all([
+                window.SupabaseClient.getDashboardStats(),
+                window.SupabaseClient.getStaff().catch(() => [])
+            ]);
             const user = window.SupabaseClient.getCurrentUser() || { full_name: "Naresh S", role: "SUPER_ADMIN" };
-            this.renderLayout(container, stats, user);
+            this.renderLayout(container, stats, user, staff);
         } catch (err) {
             console.error("[Dashboard Load Error]", err);
             container.innerHTML = `
@@ -38,12 +41,30 @@ const DashboardView = {
         }
     },
 
-    renderLayout(container, stats, user) {
+    renderLayout(container, stats, user, staff = []) {
         const totalRevenue = stats.total_revenue_formatted || '₹45,231.89';
         const totalValuation = stats.total_valuation_formatted || '₹35,77,000';
         const totalUnits = (stats.total_units_on_hand || 1423).toLocaleString();
         const pendingReceivables = stats.pending_payments_formatted || '₹0.00';
         const activeSKUs = stats.active_skus_count || 5;
+
+        const heroesHtml = (staff && staff.length > 0) ? staff.slice(0, 5).map(s => {
+            const initials = s.full_name ? s.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ST';
+            if (s.avatar_url) {
+                return `<div class="shadcn-avatar-circle" title="${s.full_name} (${s.role})" style="overflow: hidden; padding: 0; border: 1.5px solid rgba(255,255,255,0.2);">
+                    <img src="${s.avatar_url}" alt="${s.full_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerText='${initials}'" />
+                </div>`;
+            }
+            const colors = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777'];
+            const color = colors[Math.abs(s.full_name.length) % colors.length];
+            return `<div class="shadcn-avatar-circle" title="${s.full_name} (${s.role})" style="background: ${color};">${initials}</div>`;
+        }).join('') : `
+            <div class="shadcn-avatar-circle" title="Naresh S (Super Admin)" style="background: #2563eb;">NS</div>
+            <div class="shadcn-avatar-circle" title="Vikram Mehta (Inventory)" style="background: #059669;">VM</div>
+            <div class="shadcn-avatar-circle" title="Pooja Reddy (Store Manager)" style="background: #d97706;">PR</div>
+            <div class="shadcn-avatar-circle" title="Aman Verma (Cashier)" style="background: #7c3aed;">AV</div>
+            <div class="shadcn-avatar-circle" title="Sneha Nair (Auditor)" style="background: #db2777;">SN</div>
+        `;
 
         container.innerHTML = `
             <!-- Top Page Header with View Tabs (Overview, Reports, Activities) -->
@@ -135,12 +156,8 @@ const DashboardView = {
                         <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Professionals</div>
                         <div class="shadcn-team-count">357</div>
                         <div style="font-size: 12px; color: #ffffff; font-weight: 700; margin-bottom: 8px;">Today's Heroes</div>
-                        <div class="shadcn-avatar-group">
-                            <div class="shadcn-avatar-circle" title="Naresh S (Super Admin)" style="background: #2563eb;">NS</div>
-                            <div class="shadcn-avatar-circle" title="Vikram Mehta (Inventory)" style="background: #059669;">VM</div>
-                            <div class="shadcn-avatar-circle" title="Pooja Reddy (Store Manager)" style="background: #d97706;">PR</div>
-                            <div class="shadcn-avatar-circle" title="Aman Verma (Cashier)" style="background: #7c3aed;">AV</div>
-                            <div class="shadcn-avatar-circle" title="Sneha Nair (Auditor)" style="background: #db2777;">SN</div>
+                        <div class="shadcn-avatar-group" id="dashboard-team-heroes">
+                            ${heroesHtml}
                         </div>
                     </div>
 
