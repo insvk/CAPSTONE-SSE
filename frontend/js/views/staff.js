@@ -204,7 +204,7 @@ const StaffView = {
                         </div>
                         <div class="tblr-form-group">
                             <label class="tblr-form-label">Email Address *</label>
-                            <input type="email" id="staff-add-email" class="tblr-form-control" placeholder="ramesh@apex.com" required />
+                            <input type="email" id="staff-add-email" class="tblr-form-control" placeholder="ramesh@sse.inv.com" required />
                         </div>
                         <div class="tblr-form-group">
                             <label class="tblr-form-label">Job Title</label>

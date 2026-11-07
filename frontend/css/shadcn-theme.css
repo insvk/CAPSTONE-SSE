@@ -65,10 +65,15 @@ body {
 /* ==============================================================================
  * MAIN LAYOUT: SIDEBAR + MAIN PANEL
  * ============================================================================== */
-.shadcn-app-wrapper {
-    display: flex;
+.shadcn-app-wrapper, #imbs-app-root {
+    display: flex !important;
     min-height: 100vh;
+    width: 100vw;
     background: var(--bg-app);
+}
+
+.shadcn-app-wrapper.imbs-hidden, #imbs-app-root.imbs-hidden, body.imbs-auth-locked #imbs-app-root {
+    display: none !important;
 }
 
 /* Left Sidebar */

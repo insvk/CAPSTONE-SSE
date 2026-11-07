@@ -24,7 +24,10 @@ const AuthController = {
         if (this.isAuthenticated()) {
             document.body.classList.remove('imbs-auth-locked');
             const mainApp = document.getElementById('imbs-app-root');
-            if (mainApp) mainApp.style.display = 'block';
+            if (mainApp) {
+                mainApp.style.display = 'flex';
+                mainApp.classList.remove('imbs-hidden');
+            }
             this.updateNavUser();
             if (window.App && window.App.applyRBAC) {
                 window.App.applyRBAC();
@@ -35,7 +38,10 @@ const AuthController = {
         // Lock app and show login
         document.body.classList.add('imbs-auth-locked');
         const mainApp = document.getElementById('imbs-app-root');
-        if (mainApp) mainApp.style.display = 'none';
+        if (mainApp) {
+            mainApp.style.display = 'none';
+            mainApp.classList.add('imbs-hidden');
+        }
 
         const wrapper = document.createElement('div');
         wrapper.id = 'imbs-login-screen';
@@ -63,47 +69,47 @@ const AuthController = {
                             Select RBAC Role to Login
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <button type="button" class="imbs-role-pill-btn active" onclick="AuthController.loginAsRole('admin@apex.com', 'Admin@Password26', 'SUPER_ADMIN')">
+                            <button type="button" class="imbs-role-pill-btn active" onclick="AuthController.loginAsRole('admin@sse.inv.com', 'Admin.sse@123', 'SUPER_ADMIN')">
                                 <span style="font-size: 14px;">👑</span>
                                 <div style="text-align: left; flex: 1;">
                                     <div style="font-weight: 600; font-size: 12px; color: #fff;">Super Administrator (Naresh S)</div>
-                                    <div style="font-size: 10px; color: #94a3b8;">admin@apex.com • Full complete access</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">admin@sse.inv.com • Full complete access</div>
                                 </div>
                                 <span class="tblr-badge tblr-badge-blue" style="font-size: 9px;">ADMIN</span>
                             </button>
 
-                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('inventory@apex.com', 'Manager@2026', 'INVENTORY_MANAGER')">
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('inventory@sse.inv.com', 'Inventory.sse@123', 'INVENTORY_MANAGER')">
                                 <span style="font-size: 14px;">📦</span>
                                 <div style="text-align: left; flex: 1;">
                                     <div style="font-weight: 600; font-size: 12px; color: #fff;">Inventory Manager (Vikram Mehta)</div>
-                                    <div style="font-size: 10px; color: #94a3b8;">inventory@apex.com • Stock, WAC, Catalog</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">inventory@sse.inv.com • Stock, WAC, Catalog</div>
                                 </div>
                                 <span class="tblr-badge tblr-badge-yellow" style="font-size: 9px;">INVENTORY</span>
                             </button>
 
-                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('store@apex.com', 'Manager@2026', 'STORE_MANAGER')">
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('store@sse.inv.com', 'Store.sse@123', 'STORE_MANAGER')">
                                 <span style="font-size: 14px;">🛒</span>
                                 <div style="text-align: left; flex: 1;">
                                     <div style="font-weight: 600; font-size: 12px; color: #fff;">Store Manager (Pooja Reddy)</div>
-                                    <div style="font-size: 10px; color: #94a3b8;">store@apex.com • Procurement, GRN, Suppliers</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">store@sse.inv.com • Procurement, GRN, Suppliers</div>
                                 </div>
                                 <span class="tblr-badge tblr-badge-yellow" style="font-size: 9px;">STORE</span>
                             </button>
 
-                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('cashier@apex.com', 'Cashier@2026', 'CASHIER')">
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('cashier@sse.inv.com', 'Cashier.sse@123', 'CASHIER')">
                                 <span style="font-size: 14px;">💳</span>
                                 <div style="text-align: left; flex: 1;">
                                     <div style="font-weight: 600; font-size: 12px; color: #fff;">POS Cashier (Aman Verma)</div>
-                                    <div style="font-size: 10px; color: #94a3b8;">cashier@apex.com • Billing counter, Receipts</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">cashier@sse.inv.com • Billing counter, Receipts</div>
                                 </div>
                                 <span class="tblr-badge tblr-badge-green" style="font-size: 9px;">POS</span>
                             </button>
 
-                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('auditor@apex.com', 'Auditor@2026', 'AUDITOR')">
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('auditor@sse.inv.com', 'Auditor.sse@123', 'AUDITOR')">
                                 <span style="font-size: 14px;">🔍</span>
                                 <div style="text-align: left; flex: 1;">
                                     <div style="font-weight: 600; font-size: 12px; color: #fff;">Auditor & Compliance (Sneha Nair)</div>
-                                    <div style="font-size: 10px; color: #94a3b8;">auditor@apex.com • General Ledger, Audit Logs</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">auditor@sse.inv.com • General Ledger, Audit Logs</div>
                                 </div>
                                 <span class="tblr-badge tblr-badge-purple" style="font-size: 9px;">AUDIT</span>
                             </button>
@@ -142,7 +148,7 @@ const AuthController = {
                         <div class="imbs-login-label-row">
                             <label class="imbs-login-label">Email</label>
                         </div>
-                        <input type="email" id="auth-email" class="imbs-login-input" placeholder="admin@apex.com" value="${this.isSignUpMode ? '' : 'admin@apex.com'}" required />
+                        <input type="email" id="auth-email" class="imbs-login-input" placeholder="admin@sse.inv.com" value="${this.isSignUpMode ? '' : 'admin@sse.inv.com'}" required />
                     </div>
 
                     <div class="imbs-login-field">
@@ -153,7 +159,7 @@ const AuthController = {
                             ` : ''}
                         </div>
                         <div class="imbs-login-input-wrap">
-                            <input type="password" id="auth-password" class="imbs-login-input" placeholder="••••••••" value="${this.isSignUpMode ? '' : 'Admin@Password26'}" required />
+                            <input type="password" id="auth-password" class="imbs-login-input" placeholder="••••••••" value="${this.isSignUpMode ? '' : 'Admin.sse@123'}" required />
                             <button type="button" class="imbs-pwd-toggle" onclick="AuthController.togglePassword()">
                                 <svg id="pwd-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>

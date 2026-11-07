@@ -161,35 +161,35 @@ const SupabaseClient = {
 
         // 2. Pre-configured Enterprise RBAC Accounts
         const rbacAccounts = {
-            'admin@apex.com': {
+            'admin@sse.inv.com': {
                 id: '30000000-0000-0000-0000-000000000002',
                 full_name: 'Naresh S',
                 job_title: 'Lead Administrator',
                 role: 'SUPER_ADMIN',
                 role_name: 'Super Administrator'
             },
-            'inventory@apex.com': {
+            'inventory@sse.inv.com': {
                 id: '30000000-0000-0000-0000-000000000003',
                 full_name: 'Vikram Mehta',
                 job_title: 'Warehouse Logistics Lead',
                 role: 'INVENTORY_MANAGER',
                 role_name: 'Inventory Manager'
             },
-            'store@apex.com': {
+            'store@sse.inv.com': {
                 id: '30000000-0000-0000-0000-000000000004',
                 full_name: 'Pooja Reddy',
                 job_title: 'Procurement & Store Manager',
                 role: 'STORE_MANAGER',
                 role_name: 'Store Manager'
             },
-            'cashier@apex.com': {
+            'cashier@sse.inv.com': {
                 id: '30000000-0000-0000-0000-000000000005',
                 full_name: 'Aman Verma',
                 job_title: 'Head Billing Cashier',
                 role: 'CASHIER',
                 role_name: 'POS Cashier'
             },
-            'auditor@apex.com': {
+            'auditor@sse.inv.com': {
                 id: '30000000-0000-0000-0000-000000000006',
                 full_name: 'Sneha Nair',
                 job_title: 'Statutory Auditor & Compliance',
@@ -535,15 +535,144 @@ const SupabaseClient = {
     // --------------------------------------------------------------------------
     // POS BILLING & INVOICING
     // --------------------------------------------------------------------------
+    async getNextSequentialBillNumber() {
+        const today = new Date();
+        const dateStr = today.getFullYear().toString() +
+            String(today.getMonth() + 1).padStart(2, '0') +
+            String(today.getDate()).padStart(2, '0');
+        const prefix = `INV-POS-${dateStr}-`;
+
+        try {
+            const existing = await this.restRequest(`invoices?select=invoice_number&invoice_number=like.${encodeURIComponent(prefix)}*&order=invoice_number.desc&limit=1`);
+            if (existing && existing.length > 0 && existing[0].invoice_number) {
+                const last = existing[0].invoice_number;
+                const seq = parseInt(last.replace(prefix, ''), 10);
+                if (!isNaN(seq)) {
+                    return `${prefix}${String(seq + 1).padStart(4, '0')}`;
+                }
+            }
+        } catch (e) {
+            console.warn("[Sequential bill number query notice]", e);
+        }
+
+        return `${prefix}0001`;
+    },
+
+    async getOrCreateCustomerByMobile(mobile, name, stateCode = "27") {
+        const cleanPhone = (mobile || '').trim();
+        if (!cleanPhone) {
+            return {
+                id: "80000000-0000-0000-0000-000000000003",
+                name: name || "Walk-in Retail Cash Customer",
+                phone: null,
+                code: "CUST-WALKIN"
+            };
+        }
+
+        try {
+            const existing = await this.restRequest(`customers?phone=ilike.*${encodeURIComponent(cleanPhone)}*&limit=1`);
+            if (existing && existing.length > 0) {
+                const c = existing[0];
+                if (name && name !== c.name && name !== 'Walk-in Retail Cash Customer') {
+                    await this.restRequest(`customers?id=eq.${c.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ name: name.trim() })
+                    }).catch(() => {});
+                    c.name = name.trim();
+                }
+                return c;
+            }
+
+            const code = `CUST-M${cleanPhone.slice(-6)}`;
+            const newCustPayload = {
+                organization_id: "00000000-0000-0000-0000-000000000001",
+                code: code,
+                name: (name || `Customer ${cleanPhone}`).trim(),
+                phone: cleanPhone,
+                state_code: stateCode || "27",
+                credit_limit_cents: 0,
+                outstanding_balance_cents: 0,
+                is_active: true
+            };
+
+            const created = await this.restRequest('customers', {
+                method: 'POST',
+                body: JSON.stringify(newCustPayload)
+            });
+
+            if (created && created[0]) {
+                await this.logAudit("CREATE", "CUSTOMER", created[0].id, `Auto-registered POS customer: ${created[0].name} (${cleanPhone})`);
+                return created[0];
+            }
+        } catch (err) {
+            console.warn("[Customer mobile query notice]", err);
+        }
+
+        return {
+            id: "80000000-0000-0000-0000-000000000003",
+            name: name || "Walk-in Retail Cash Customer",
+            phone: cleanPhone,
+            code: "CUST-WALKIN"
+        };
+    },
+
+    async getCustomerTransactions(customerId) {
+        if (!customerId) return [];
+        try {
+            const query = `invoices?customer_id=eq.${customerId}&select=id,invoice_number,invoice_date,subtotal_cents,tax_total_cents,grand_total_cents,status,created_at,invoice_lines(quantity,unit_price_cents,line_total_cents,products(name,sku))&order=created_at.desc`;
+            const data = await this.restRequest(query);
+            return (data || []).map(inv => ({
+                id: inv.id,
+                invoice_number: inv.invoice_number,
+                invoice_date: inv.invoice_date,
+                subtotal: inv.subtotal_cents,
+                tax_amount: inv.tax_total_cents,
+                grand_total: inv.grand_total_cents,
+                status: inv.status,
+                created_at: inv.created_at,
+                lines: inv.invoice_lines || []
+            }));
+        } catch (err) {
+            console.warn("[Fetch customer transactions warning]", err);
+            return [];
+        }
+    },
+
+    async updateStoreProfile(data) {
+        try {
+            await this.restRequest(`branches?id=eq.10000000-0000-0000-0000-000000000001`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    name: data.shop_name,
+                    address_line1: data.address_line1,
+                    address_line2: data.address_line2,
+                    phone: data.phone,
+                    email: data.email
+                })
+            });
+
+            await this.restRequest(`organizations?id=eq.00000000-0000-0000-0000-000000000001`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    name: data.shop_name,
+                    tax_identifier: data.gstin
+                })
+            });
+        } catch (e) {
+            console.warn("[Update store profile in Supabase warning]", e);
+        }
+    },
+
     async checkoutSale(saleData) {
         const user = this.getCurrentUser();
-        const invoiceNo = `INV-2026-${Date.now().toString().slice(-4)}`;
+        const invoiceNo = saleData.invoice_number || await this.getNextSequentialBillNumber();
+        const customer = saleData.customer || await this.getOrCreateCustomerByMobile(saleData.customer_phone, saleData.customer_name, saleData.is_interstate ? "29" : "27");
 
         const invoicePayload = {
             organization_id: "00000000-0000-0000-0000-000000000001",
             branch_id: "10000000-0000-0000-0000-000000000001",
             warehouse_id: saleData.warehouse_id || "20000000-0000-0000-0000-000000000001",
-            customer_id: saleData.customer_id || "80000000-0000-0000-0000-000000000003",
+            customer_id: customer.id,
             invoice_number: invoiceNo,
             invoice_date: new Date().toISOString().split('T')[0],
             subtotal_cents: Math.round(saleData.subtotal),
@@ -554,6 +683,7 @@ const SupabaseClient = {
             paid_amount_cents: Math.round(saleData.grand_total),
             balance_due_cents: 0,
             status: "PAID",
+            payment_terms: saleData.payment_method || "CASH",
             is_pos: true,
             created_by: user ? user.id : null
         };
@@ -677,8 +807,19 @@ const SupabaseClient = {
             console.warn("[Journal entry auto-post notice]", jeErr);
         }
 
-        await this.logAudit("SALE_CHECKOUT", "INVOICE", createdInv.id, `POS sale completed: ${invoiceNo} (₹${(createdInv.grand_total_cents / 100).toFixed(2)})`);
-        return createdInv;
+        await this.logAudit("SALE_CHECKOUT", "INVOICE", createdInv.id, `POS sale completed: ${invoiceNo} (₹${(createdInv.grand_total_cents / 100).toFixed(2)}) at ${saleData.counter_name || 'Counter 01'} by ${user ? user.full_name : 'Cashier'}`);
+        return {
+            ...createdInv,
+            customer: customer,
+            counter_name: saleData.counter_name || 'Counter 01 - Front Desk',
+            cashier_name: user ? user.full_name : 'Aman Verma',
+            cashier_email: user ? user.email : 'cashier@sse.inv.com',
+            payment_method: saleData.payment_method || 'CASH',
+            amount_tendered_cents: saleData.amount_tendered_cents || createdInv.grand_total_cents,
+            change_due_cents: saleData.change_due_cents || 0,
+            exact_timestamp: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }),
+            items: saleData.items
+        };
     },
 
     async getInvoices() {

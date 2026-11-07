@@ -390,7 +390,8 @@ module.exports = async (req, res) => {
         if (pathname === 'invoices' || pathname === 'pos/checkout') {
             if (req.method === 'POST') {
                 const quote = calculateQuotation(body);
-                const invoiceNo = `INV-2026-${Date.now().toString().slice(-4)}`;
+                const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const invoiceNo = body.invoice_number || `INV-POS-${todayStr}-${Date.now().toString().slice(-4)}`;
 
                 const invoicePayload = {
                     organization_id: "00000000-0000-0000-0000-000000000001",

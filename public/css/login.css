@@ -6,6 +6,10 @@
  * ==============================================================================
  */
 
+body.imbs-auth-locked #imbs-app-root {
+    display: none !important;
+}
+
 .imbs-login-wrapper {
     position: fixed;
     top: 0;

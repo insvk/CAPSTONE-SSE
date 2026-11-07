@@ -18,6 +18,7 @@ const requiredFiles = [
     'frontend/js/app.js',
     'frontend/js/api.js',
     'frontend/js/auth.js',
+    'frontend/js/store_config.js',
     'frontend/js/supabase_client.js',
     'frontend/js/charts.js',
     'frontend/js/views/dashboard.js',

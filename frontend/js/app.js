@@ -278,6 +278,57 @@ const App = {
         if (modal) modal.style.display = 'none';
     },
 
+    openStoreProfileModal() {
+        const modal = document.getElementById('modal-store-profile');
+        if (modal) {
+            const p = window.StoreConfig ? window.StoreConfig.getProfile() : {};
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val || '';
+            };
+            setVal('cfg-store-name', p.shop_name);
+            setVal('cfg-store-tagline', p.tagline);
+            setVal('cfg-store-addr1', p.address_line1);
+            setVal('cfg-store-addr2', p.address_line2);
+            setVal('cfg-store-phone', p.phone);
+            setVal('cfg-store-email', p.email);
+            setVal('cfg-store-gstin', p.gstin);
+            setVal('cfg-store-fssai', p.fssai);
+            setVal('cfg-store-footer', p.footer_note);
+            modal.style.display = 'flex';
+        }
+    },
+
+    closeStoreProfileModal() {
+        const modal = document.getElementById('modal-store-profile');
+        if (modal) modal.style.display = 'none';
+    },
+
+    saveStoreProfile(e) {
+        if (e) e.preventDefault();
+        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
+        const payload = {
+            shop_name: getVal('cfg-store-name') || 'SSE Enterprise Hub & Retail',
+            tagline: getVal('cfg-store-tagline') || 'High-Performance Multi-Counter POS',
+            address_line1: getVal('cfg-store-addr1') || 'Plot 42, Tech Park Avenue, BKC Complex',
+            address_line2: getVal('cfg-store-addr2') || 'Mumbai, Maharashtra - 400051',
+            phone: getVal('cfg-store-phone') || '+91 98765 43210',
+            email: getVal('cfg-store-email') || 'contact@sse.inv.com',
+            gstin: getVal('cfg-store-gstin') || '27AABCU9603R1ZM',
+            fssai: getVal('cfg-store-fssai') || '',
+            footer_note: getVal('cfg-store-footer') || 'Thank you for shopping with SSE Enterprise! Visit again.'
+        };
+
+        if (window.StoreConfig) {
+            window.StoreConfig.saveProfile(payload);
+            this.showToast('✓ Store details updated! Applied to all printed receipts and bills.', 'success');
+            this.closeStoreProfileModal();
+            if (this.currentView === 'pos' && window.PosView) {
+                window.PosView.render(document.getElementById('main-content'));
+            }
+        }
+    },
+
     openCloudModal() {
         const modal = document.getElementById('modal-cloud-settings');
         if (modal) {

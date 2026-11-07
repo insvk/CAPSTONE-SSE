@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMBS Enterprise - High-Performance Cloud Inventory Management & Billing System</title>
+    <title>CSA0201-B-IMBS V0.1</title>
     <!-- Shadcn UI Kit Dark Theme -->
     <link rel="stylesheet" href="/css/shadcn-theme.css?v=2.3.0">
     <link rel="stylesheet" href="/css/pos.css?v=2.3.0">
     <link rel="stylesheet" href="/css/login.css?v=2.3.0">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><rect width='24' height='24' rx='6' fill='%2309090b'/><path d='M7 9l4 3-4 3' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M13 15h4' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><rect width='24' height='24' rx='6' fill='%2309090b'/><path d='M7 9l4 3-4 3' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M13 15h4' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/></svg>">
 </head>
+
 <body>
 
     <!-- Main Application Shell (Left Sidebar + Main Panel) -->
@@ -22,11 +25,13 @@
                     <span>//</span>
                 </div>
                 <div class="shadcn-sidebar-brand-text">
-                    <span class="shadcn-brand-title">IMBS Enterprise</span>
-                    <span class="shadcn-brand-badge">PRO MAXX 2.3</span>
+                    <span class="shadcn-brand-title">IMBS PLATFORM</span>
+                    <span class="shadcn-brand-badge">CSA0201-B</span>
                 </div>
                 <button class="shadcn-user-dots-btn" title="Switch Store / Warehouse">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
                 </button>
             </div>
 
@@ -34,54 +39,93 @@
             <div class="shadcn-sidebar-nav">
                 <!-- Group 1: Master Dashboards -->
                 <div class="shadcn-nav-section-title">DASHBOARDS</div>
-                
+
                 <a href="#" class="shadcn-nav-item active" data-view="dashboard">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </svg>
                     <span>Overview Dashboard</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="products">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    </svg>
                     <span>Products & SKUs</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="inventory">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
                     <span>Stock Ledger & Hubs</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="pos">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
                     <span>POS Cashier Register</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="invoices">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
                     <span>Tax Invoices & Billing</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="customers">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
                     <span>Customer Accounts</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="procurement">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="3" width="15" height="13" />
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                        <circle cx="5.5" cy="18.5" r="2.5" />
+                        <circle cx="18.5" cy="18.5" r="2.5" />
+                    </svg>
                     <span>Procurement & GRN</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="accounting">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 12 20 22 4 22 4 12" />
+                        <rect x="2" y="7" width="20" height="5" />
+                        <line x1="12" y1="22" x2="12" y2="7" />
+                    </svg>
                     <span>General Ledger</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="staff">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <line x1="19" y1="8" x2="19" y2="14" />
+                        <line x1="22" y1="11" x2="16" y2="11" />
+                    </svg>
                     <span>Staff & RBAC</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" data-view="audit">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
                     <span>Audit Trail</span>
                 </a>
 
@@ -89,17 +133,28 @@
                 <div class="shadcn-nav-section-title" style="margin-top: 14px;">OPERATIONS & APPS</div>
 
                 <a href="#" class="shadcn-nav-item" data-view="c_inspector">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                    </svg>
                     <span>C-Engine Inspector</span>
                 </a>
 
                 <a href="#" class="shadcn-nav-item" onclick="App.openCloudModal(); return false;">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
                     <span>Supabase Cloud Sync</span>
                 </a>
 
-                <a href="#" class="shadcn-nav-item" onclick="App.showToast('Supabase Live: Invariant checks & audit logging active.', 'info'); return false;">
-                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <a href="#" class="shadcn-nav-item"
+                    onclick="App.showToast('Supabase Live: Invariant checks & audit logging active.', 'info'); return false;">
+                    <svg class="shadcn-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
                     <span>Alerts & Logs</span>
                     <span class="shadcn-badge-count">2</span>
                 </a>
@@ -111,10 +166,16 @@
                     <div class="shadcn-user-avatar" id="sidebar-user-avatar">NS</div>
                     <div class="shadcn-user-details">
                         <span class="shadcn-user-name" id="sidebar-user-name">Naresh S</span>
-                        <span class="shadcn-user-email" id="sidebar-user-email">admin@apex.com</span>
+                        <span class="shadcn-user-email" id="sidebar-user-email">admin@sse.inv.com</span>
                     </div>
-                    <button class="shadcn-user-dots-btn" title="Sign Out / Switch Role" onclick="event.stopPropagation(); App.openUserMenu();">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    <button class="shadcn-user-dots-btn" title="Sign Out / Switch Role"
+                        onclick="event.stopPropagation(); App.openUserMenu();">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="19" cy="12" r="1" />
+                            <circle cx="5" cy="12" r="1" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -127,53 +188,86 @@
                 <div class="shadcn-topbar-left">
                     <!-- Sidebar Collapse Toggle Button -->
                     <button id="btn-sidebar-toggle" class="shadcn-icon-btn" title="Toggle Sidebar">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="9" y1="3" x2="9" y2="21" />
                         </svg>
                     </button>
 
                     <!-- Search Input with Keyboard Shortcut -->
                     <div class="shadcn-search-wrap">
-                        <svg class="shadcn-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" id="global-search-input" class="shadcn-search-input" placeholder="Search catalog, SKU, invoices, customers..." onkeydown="App.handleSearchKey(event)" />
+                        <svg class="shadcn-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="global-search-input" class="shadcn-search-input"
+                            placeholder="Search catalog, SKU, invoices, customers..."
+                            onkeydown="App.handleSearchKey(event)" />
                         <kbd class="shadcn-search-kbd">⌘K</kbd>
                     </div>
                 </div>
 
                 <div class="shadcn-topbar-right">
                     <!-- Cloud Sync Pill -->
-                    <div class="shadcn-status-pill green" onclick="App.openCloudModal()" title="Supabase PostgreSQL 17 Connected">
+                    <div class="shadcn-status-pill green" onclick="App.openCloudModal()"
+                        title="Supabase PostgreSQL 17 Connected">
                         <span class="shadcn-status-dot"></span>
                         <span id="cloud-pill-status">Supabase Live</span>
                     </div>
 
                     <!-- Date Range Filter Pill (Faithful to media_1794042981091_d0e45266.jpg) -->
                     <div class="shadcn-date-pill">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
                         <span>14 Nov 2026 - 11 Dec 2026</span>
                     </div>
 
                     <!-- Export Report Button -->
                     <button class="shadcn-btn-outline" onclick="App.exportData()">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
                         Export
                     </button>
 
                     <!-- Notifications -->
-                    <button class="shadcn-icon-btn" title="Notifications" onclick="App.showToast('Supabase Live: Invariant checks & audit logging active.', 'info')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <button class="shadcn-icon-btn" title="Notifications"
+                        onclick="App.showToast('Supabase Live: Invariant checks & audit logging active.', 'info')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg>
                         <span class="shadcn-badge-dot"></span>
                     </button>
 
                     <!-- Theme Toggle -->
                     <button id="btn-theme-toggle" class="shadcn-icon-btn" title="Toggle Theme">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
                     </button>
 
                     <!-- Settings Gear -->
-                    <button class="shadcn-icon-btn" title="Supabase Cloud Architecture Settings" onclick="App.openCloudModal()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <button class="shadcn-icon-btn" title="Supabase Cloud Architecture Settings"
+                        onclick="App.openCloudModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
                     </button>
                 </div>
             </header>
@@ -187,27 +281,34 @@
 
     <!-- User Account & RBAC Role Switcher Modal -->
     <div id="modal-user-menu" class="tblr-modal-backdrop" style="display: none;">
-        <div class="tblr-modal-dialog" style="max-width: 360px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+        <div class="tblr-modal-dialog"
+            style="max-width: 360px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
             <div class="tblr-modal-header" style="border-bottom: 1px solid #222226;">
                 <h3 class="tblr-modal-title" style="color: #fff;">User Profile & RBAC</h3>
                 <button class="tblr-modal-close" onclick="App.closeUserMenu()">✕</button>
             </div>
             <div class="tblr-modal-body" style="text-align: center; padding: 24px 20px;">
-                <div style="width: 60px; height: 60px; border-radius: 50%; background: #27272a; border: 2px solid #3f3f46; color: #fff; font-size: 22px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;" id="user-menu-avatar">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: #27272a; border: 2px solid #3f3f46; color: #fff; font-size: 22px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;"
+                    id="user-menu-avatar">
                     NS
                 </div>
                 <div id="user-menu-name" style="font-size: 16px; font-weight: 700; color: #fff;">Naresh S</div>
-                <div id="user-menu-email" style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">admin@apex.com</div>
+                <div id="user-menu-email" style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">admin@sse.inv.com</div>
                 <span id="user-menu-role" class="shadcn-badge blue">SUPER_ADMIN</span>
-                
-                <div style="margin-top: 24px; border-top: 1px solid #222226; padding-top: 18px; display: flex; flex-direction: column; gap: 10px;">
-                    <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center;" onclick="App.navigateTo('staff'); App.closeUserMenu();">
+
+                <div
+                    style="margin-top: 24px; border-top: 1px solid #222226; padding-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+                    <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center;"
+                        onclick="App.navigateTo('staff'); App.closeUserMenu();">
                         Manage Staff & Roles
                     </button>
-                    <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center;" onclick="App.openCloudModal(); App.closeUserMenu();">
+                    <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center;"
+                        onclick="App.openCloudModal(); App.closeUserMenu();">
                         Cloud DB Settings
                     </button>
-                    <button class="shadcn-btn-secondary" style="width: 100%; justify-content: center; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" onclick="App.logout()">
+                    <button class="shadcn-btn-secondary"
+                        style="width: 100%; justify-content: center; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
+                        onclick="App.logout()">
                         Sign Out
                     </button>
                 </div>
@@ -217,7 +318,8 @@
 
     <!-- Cloud Architecture & Supabase Settings Modal -->
     <div id="modal-cloud-settings" class="tblr-modal-backdrop" style="display: none;">
-        <div class="tblr-modal-dialog" style="max-width: 600px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+        <div class="tblr-modal-dialog"
+            style="max-width: 600px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
             <div class="tblr-modal-header" style="border-bottom: 1px solid #222226;">
                 <div>
                     <h3 class="tblr-modal-title" style="color: #fff;">Cloud Deployment & Supabase Settings</h3>
@@ -228,31 +330,43 @@
                 <button class="tblr-modal-close" onclick="App.closeCloudModal()">✕</button>
             </div>
             <div class="tblr-modal-body" style="padding: 20px;">
-                <div style="background: #18181c; border: 1px solid #27272a; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div
+                    style="background: #18181c; border: 1px solid #27272a; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-size: 13px; font-weight: 700; color: #fff;">Deployment Topology</span>
                         <span class="shadcn-badge green">Full-Stack Cloud Sync</span>
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
                         • <strong>Frontend:</strong> Hosted on Vercel Global Edge CDN with zero cold-starts.<br>
-                        • <strong>Backend:</strong> Native compiled C engine (:8080) or Vercel Serverless Function (/api/v1).<br>
+                        • <strong>Backend:</strong> Native compiled C engine (:8080) or Vercel Serverless Function
+                        (/api/v1).<br>
                         • <strong>Database:</strong> PostgreSQL 17 on Supabase with 28 tables, RLS & triggers.
                     </div>
                 </div>
 
                 <div class="tblr-form-group" style="margin-bottom: 14px;">
-                    <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Supabase Project URL</label>
-                    <input type="text" id="cfg-supabase-url" class="shadcn-input" placeholder="https://fdtkwdkpanxbuextrpiw.supabase.co" />
+                    <label class="tblr-form-label"
+                        style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Supabase
+                        Project URL</label>
+                    <input type="text" id="cfg-supabase-url" class="shadcn-input"
+                        placeholder="https://fdtkwdkpanxbuextrpiw.supabase.co" />
                 </div>
 
                 <div class="tblr-form-group" style="margin-bottom: 14px;">
-                    <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Supabase Anon Public API Key</label>
-                    <input type="password" id="cfg-supabase-anon-key" class="shadcn-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+                    <label class="tblr-form-label"
+                        style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Supabase
+                        Anon Public API Key</label>
+                    <input type="password" id="cfg-supabase-anon-key" class="shadcn-input"
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
                 </div>
 
-                <div id="cloud-test-result" style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 8px;"></div>
+                <div id="cloud-test-result"
+                    style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 8px;">
+                </div>
             </div>
-            <div class="tblr-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid #222226;">
+            <div class="tblr-modal-footer"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid #222226;">
                 <button type="button" class="shadcn-btn-secondary" onclick="App.testCloudConnection()">
                     Test Connection
                 </button>
@@ -268,22 +382,87 @@
         </div>
     </div>
 
-    <!-- Application Scripts (Cache-Busted v2.3.0) -->
-    <script src="/js/charts.js?v=2.3.0"></script>
-    <script src="/js/supabase_client.js?v=2.3.0"></script>
-    <script src="/js/auth.js?v=2.3.0"></script>
-    <script src="/js/api.js?v=2.3.0"></script>
-    <script src="/js/views/dashboard.js?v=2.3.0"></script>
-    <script src="/js/views/products.js?v=2.3.0"></script>
-    <script src="/js/views/inventory.js?v=2.3.0"></script>
-    <script src="/js/views/pos.js?v=2.3.0"></script>
-    <script src="/js/views/invoices.js?v=2.3.0"></script>
-    <script src="/js/views/customers.js?v=2.3.0"></script>
-    <script src="/js/views/procurement.js?v=2.3.0"></script>
-    <script src="/js/views/accounting.js?v=2.3.0"></script>
-    <script src="/js/views/staff.js?v=2.3.0"></script>
-    <script src="/js/views/audit.js?v=2.3.0"></script>
-    <script src="/js/views/c_inspector.js?v=2.3.0"></script>
-    <script src="/js/app.js?v=2.3.0"></script>
+    <!-- Store Profile & Printed Bill Details Modal -->
+    <div id="modal-store-profile" class="shadcn-modal-backdrop" style="display: none;">
+        <div class="shadcn-modal-dialog" style="max-width: 540px;">
+            <div class="shadcn-modal-header">
+                <div>
+                    <h3 class="shadcn-modal-title">Store Profile & Printed Bill Details</h3>
+                    <div style="font-size: 11px; color: var(--text-muted);">Configures shop name, address, phone & GSTIN printed on all bills</div>
+                </div>
+                <button class="shadcn-modal-close" onclick="App.closeStoreProfileModal()">✕</button>
+            </div>
+            <form onsubmit="App.saveStoreProfile(event)">
+                <div class="shadcn-modal-body">
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Shop / Business Name *</label>
+                        <input type="text" id="cfg-store-name" class="shadcn-input" placeholder="e.g. SSE Enterprise Hub & Retail" required />
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Store Tagline / Subtitle</label>
+                        <input type="text" id="cfg-store-tagline" class="shadcn-input" placeholder="e.g. High-Performance Multi-Counter POS" />
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Address Line 1</label>
+                            <input type="text" id="cfg-store-addr1" class="shadcn-input" placeholder="Plot 42, Tech Park Avenue" />
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Address Line 2 (City / PIN)</label>
+                            <input type="text" id="cfg-store-addr2" class="shadcn-input" placeholder="BKC, Mumbai - 400051" />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Store Mobile / Phone *</label>
+                            <input type="tel" id="cfg-store-phone" class="shadcn-input" placeholder="+91 98765 43210" required />
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Store GSTIN / Tax ID *</label>
+                            <input type="text" id="cfg-store-gstin" class="shadcn-input" placeholder="27AABCU9603R1ZM" required />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">FSSAI / License (Optional)</label>
+                            <input type="text" id="cfg-store-fssai" class="shadcn-input" placeholder="11521000000123" />
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Store Email</label>
+                            <input type="email" id="cfg-store-email" class="shadcn-input" placeholder="contact@sse.inv.com" />
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Receipt Footer Message</label>
+                        <input type="text" id="cfg-store-footer" class="shadcn-input" placeholder="Thank you for shopping with SSE Enterprise! Visit again." />
+                    </div>
+                </div>
+                <div class="shadcn-modal-footer">
+                    <button type="button" class="shadcn-btn-secondary" onclick="App.closeStoreProfileModal()">Cancel</button>
+                    <button type="submit" class="shadcn-btn-primary">✓ Save Store Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Scripts (Cache-Busted v2.4.0) -->
+    <script src="/js/charts.js?v=2.4.0"></script>
+    <script src="/js/store_config.js?v=2.4.0"></script>
+    <script src="/js/supabase_client.js?v=2.4.0"></script>
+    <script src="/js/auth.js?v=2.4.0"></script>
+    <script src="/js/api.js?v=2.4.0"></script>
+    <script src="/js/views/dashboard.js?v=2.4.0"></script>
+    <script src="/js/views/products.js?v=2.4.0"></script>
+    <script src="/js/views/inventory.js?v=2.4.0"></script>
+    <script src="/js/views/pos.js?v=2.4.0"></script>
+    <script src="/js/views/invoices.js?v=2.4.0"></script>
+    <script src="/js/views/customers.js?v=2.4.0"></script>
+    <script src="/js/views/procurement.js?v=2.4.0"></script>
+    <script src="/js/views/accounting.js?v=2.4.0"></script>
+    <script src="/js/views/staff.js?v=2.4.0"></script>
+    <script src="/js/views/audit.js?v=2.4.0"></script>
+    <script src="/js/views/c_inspector.js?v=2.4.0"></script>
+    <script src="/js/app.js?v=2.4.0"></script>
 </body>
+
 </html>
