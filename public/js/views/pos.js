@@ -175,10 +175,15 @@ const PosView = {
                         ${this.renderTotals()}
                     </div>
 
-                    <!-- Checkout Button -->
-                    <button class="pos-btn-checkout" id="pos-btn-pay" onclick="PosView.openCheckoutModal()" ${this.cart.length === 0 ? 'disabled' : ''}>
-                        Pay & Print Bill (${this.getFormattedGrandTotal()})
-                    </button>
+                    <!-- Dual Fast Checkout Action Buttons -->
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px;">
+                        <button class="pos-btn-checkout" id="pos-btn-quick-cash" onclick="PosView.quickCashCheckout()" ${this.cart.length === 0 ? 'disabled' : ''} style="background: #22c55e; color: #09090b; border-color: #22c55e; font-weight: 800; font-size: 13px;" title="1-Click Instant Cash Settle (F9 or Ctrl+Enter)">
+                            Fast Cash (${this.getFormattedGrandTotal()}) [F9]
+                        </button>
+                        <button class="pos-btn-checkout" id="pos-btn-pay" onclick="PosView.openCheckoutModal()" ${this.cart.length === 0 ? 'disabled' : ''} style="background: #2563eb; color: #ffffff; border-color: #2563eb; font-size: 12px;" title="Custom Pay / UPI / Card (F8)">
+                            Custom Pay [F8]
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -221,7 +226,10 @@ const PosView = {
                                 </div>
                             </div>
 
-                            <div style="margin-bottom: 14px;">
+                            <!-- Live Dynamic UPI QR Display Box -->
+                            <div id="checkout-upi-box" style="display: none;"></div>
+
+                            <div id="checkout-tender-group" style="margin-bottom: 14px;">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Amount Tendered by Customer (INR)</label>
                                 <input type="number" step="0.01" id="checkout-tendered" class="shadcn-input" style="font-size: 18px; font-weight: 700; font-family: var(--font-mono); height: 42px;" oninput="PosView.calculateChange(this.value)" />
                                 <div id="checkout-change-display" style="font-size: 13px; color: #22c55e; margin-top: 6px; font-weight: 600;"></div>
@@ -316,6 +324,33 @@ const PosView = {
         `;
 
         this.updateTotals();
+
+        // Enterprise Cashier Keyboard Shortcuts (F9: Quick Cash, F8: Custom Pay, F2: Focus Scan, F4: Clear)
+        if (this._keyHandler) {
+            window.removeEventListener('keydown', this._keyHandler);
+        }
+        this._keyHandler = (e) => {
+            if (e.key === 'F9' || (e.ctrlKey && e.key === 'Enter')) {
+                e.preventDefault();
+                this.quickCashCheckout();
+            } else if (e.key === 'F8') {
+                e.preventDefault();
+                this.openCheckoutModal();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                document.getElementById('pos-barcode-scanner')?.focus();
+            } else if (e.key === 'F4') {
+                e.preventDefault();
+                if (this.cart.length > 0 && confirm('Clear current POS cart?')) {
+                    this.clearCart();
+                }
+            }
+        };
+        window.addEventListener('keydown', this._keyHandler);
+
+        setTimeout(() => {
+            document.getElementById('pos-barcode-scanner')?.focus();
+        }, 100);
     },
 
     // --------------------------------------------------------------------------
@@ -750,7 +785,80 @@ const PosView = {
     },
 
     setPaymentMethod(method) {
-        // Handled via radio checked
+        const upiBox = document.getElementById('checkout-upi-box');
+        const tenderGroup = document.getElementById('checkout-tender-group');
+        if (method === 'UPI') {
+            if (upiBox) {
+                const q = this.calculateQuotation();
+                const store = window.StoreConfig ? window.StoreConfig.getProfile() : {};
+                const upiUrl = window.BarcodeQR ? window.BarcodeQR.getUpiUrl(store, { grand_total_cents: q.grand_total, invoice_number: 'QUICK-PAY' }) : '';
+                const qrSvg = (window.BarcodeQR && upiUrl) ? window.BarcodeQR.qr(upiUrl, { size: 140 }) : '';
+                upiBox.innerHTML = `
+                    <div style="text-align: center; background: #ffffff; color: #000000; padding: 14px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #1e293b; margin-bottom: 6px;">Scan to Pay with Any UPI App</div>
+                        <div style="display: flex; justify-content: center; margin: 6px 0;">${qrSvg}</div>
+                        <div style="font-size: 12px; font-family: monospace; color: #0f172a; margin-top: 6px;">UPI ID: <strong>${store.upi_id || 'sse.retail@icici'}</strong></div>
+                        <div style="font-size: 11px; font-weight: 700; color: #15803d; margin-top: 2px;">Amount: ₹${(q.grand_total / 100).toFixed(2)}</div>
+                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">GPay • PhonePe • Paytm • BHIM • Cred • Banking Apps</div>
+                    </div>
+                `;
+                upiBox.style.display = 'block';
+            }
+            if (tenderGroup) tenderGroup.style.display = 'none';
+        } else {
+            if (upiBox) upiBox.style.display = 'none';
+            if (tenderGroup) tenderGroup.style.display = 'block';
+        }
+    },
+
+    async quickCashCheckout() {
+        if (this.cart.length === 0) return;
+        const q = this.calculateQuotation();
+        const quickBtn = document.getElementById('pos-btn-quick-cash');
+        if (quickBtn) {
+            quickBtn.disabled = true;
+            quickBtn.innerText = 'Processing Bill...';
+        }
+
+        try {
+            const invoice = await window.SupabaseClient.checkoutSale({
+                customer_name: this.currentCustomer.name,
+                customer_phone: this.currentCustomer.phone,
+                is_interstate: this.isInterState,
+                counter_name: this.activeCounter ? this.activeCounter.name : 'Counter 01',
+                payment_method: 'CASH',
+                amount_tendered_cents: q.grand_total,
+                change_due_cents: 0,
+                warehouse_id: "20000000-0000-0000-0000-000000000001",
+                items: q.items,
+                subtotal: q.subtotal,
+                tax_total: q.tax_total,
+                cgst_amount: q.cgst_amount,
+                sgst_amount: q.sgst_amount,
+                igst_amount: q.igst_amount,
+                round_off: q.round_off,
+                grand_total: q.grand_total
+            });
+
+            this.lastInvoice = { ...invoice, quotation: q };
+            App.showToast(`Bill ${invoice.invoice_number} saved to Supabase!`, 'success');
+
+            // Pulse cash drawer hardware
+            if (window.PosHardware && window.PosHardware.kickCashDrawer) {
+                window.PosHardware.kickCashDrawer().catch(() => {});
+            }
+
+            // Show Thermal Receipt & Reset Cart
+            this.renderThermalReceipt(this.lastInvoice);
+            this.clearCart();
+        } catch (err) {
+            App.showToast(`Fast checkout failed: ${err.message}`, 'danger');
+        } finally {
+            if (quickBtn) {
+                quickBtn.disabled = this.cart.length === 0;
+                quickBtn.innerText = `Fast Cash (${this.getFormattedGrandTotal()}) [F9]`;
+            }
+        }
     },
 
     calculateChange(tenderedVal) {
@@ -808,6 +916,11 @@ const PosView = {
             this.closeCheckoutModal();
             App.showToast(`Bill ${invoice.invoice_number} saved to Supabase!`, 'success');
             
+            // Pulse cash drawer hardware
+            if (window.PosHardware && window.PosHardware.kickCashDrawer) {
+                window.PosHardware.kickCashDrawer().catch(() => {});
+            }
+
             // Show Thermal Receipt
             this.renderThermalReceipt(this.lastInvoice);
             this.clearCart();

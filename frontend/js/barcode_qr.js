@@ -143,8 +143,35 @@
         const size = opts.size || 130;
         const color = opts.color || '#000000';
         const bgColor = opts.bgColor || '#ffffff';
-        const str = String(text || '');
+        const str = String(text || '').trim();
 
+        // 1. High-Performance Standard QR Engine (QRCodeBundle from vendor_qrcode.js)
+        if (typeof window !== 'undefined' && window.QRCodeBundle && typeof window.QRCodeBundle.create === 'function') {
+            try {
+                const qrData = window.QRCodeBundle.create(str, { errorCorrectionLevel: opts.ecLevel || 'M' });
+                const numModules = qrData.modules.size;
+                const margin = typeof opts.margin === 'number' ? opts.margin : 1;
+                const totalDim = numModules + margin * 2;
+                const scale = size / totalDim;
+
+                let rects = '';
+                for (let r = 0; r < numModules; r++) {
+                    for (let c = 0; c < numModules; c++) {
+                        if (qrData.modules.get(r, c) === 1) {
+                            const x = ((c + margin) * scale).toFixed(2);
+                            const y = ((r + margin) * scale).toFixed(2);
+                            const w = (scale * 1.02).toFixed(2);
+                            rects += '<rect x=\"' + x + '\" y=\"' + y + '\" width=\"' + w + '\" height=\"' + w + '\" fill=\"' + color + '\"/>';
+                        }
+                    }
+                }
+                return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ' + size + ' ' + size + '\" width=\"' + size + '\" height=\"' + size + '\" shape-rendering=\"crispEdges\" style=\"display:block;margin:0 auto;background:' + bgColor + ';\"><rect width=\"' + size + '\" height=\"' + size + '\" fill=\"' + bgColor + '\"/>' + rects + '</svg>';
+            } catch (bundleErr) {
+                console.warn('[QRCodeBundle fallback]', bundleErr);
+            }
+        }
+
+        // 2. Built-in Pure JS Fallback Engine
         const utf8Bytes = [];
         for (let i = 0; i < str.length; i++) {
             let code = str.charCodeAt(i);
@@ -345,11 +372,32 @@
         `;
     }
 
+    function renderBarcodeToElement(element, text, opts) {
+        if (typeof window !== 'undefined' && window.JsBarcode && element) {
+            try {
+                window.JsBarcode(element, String(text || '').trim(), {
+                    format: 'CODE128',
+                    width: (opts && opts.width) ? Math.max(1, Math.round(opts.width / 120)) : 1.5,
+                    height: (opts && opts.height) || 40,
+                    displayValue: opts ? opts.showText !== false : true,
+                    fontSize: 12,
+                    margin: 0
+                });
+                return true;
+            } catch (e) {
+                console.warn('[JsBarcode error]', e);
+            }
+        }
+        return false;
+    }
+
     window.BarcodeQR = {
         code128: generateCode128Svg,
         qr: generateQrSvg,
         getUpiUrl: getUpiPaymentUrl,
-        generateBarcodeLabel: generateBarcodeLabelHtml
+        generateBarcodeLabel: generateBarcodeLabelHtml,
+        renderToElement: renderBarcodeToElement
     };
 
 })(typeof window !== 'undefined' ? window : this);
+

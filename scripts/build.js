@@ -18,6 +18,8 @@ const requiredFiles = [
     'frontend/js/app.js',
     'frontend/js/api.js',
     'frontend/js/auth.js',
+    'frontend/js/vendor_qrcode.js',
+    'frontend/js/vendor_jsbarcode.js',
     'frontend/js/barcode_qr.js',
     'frontend/js/store_config.js',
     'frontend/js/pos_hardware.js',

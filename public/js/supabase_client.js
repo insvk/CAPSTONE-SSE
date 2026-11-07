@@ -1073,14 +1073,17 @@ const SupabaseClient = {
             created_by: user ? user.id : null
         };
 
-        // 1. Insert Invoice
+        // 1. Insert Invoice Header (single network request)
         const invRes = await this.restRequest('invoices', {
             method: 'POST',
             body: JSON.stringify(invoicePayload)
         });
         const createdInv = invRes[0];
 
-        // 2. Insert Invoice Lines & Decrement Stock
+        // 2. Build Invoice Lines Batch for 1-Shot Bulk Insert (1 network request)
+        const invoiceLinesBatch = [];
+        const stockDeductionTasks = [];
+
         for (const line of (saleData.items || [])) {
             const qty = Math.max(1, Number(line.quantity) || 1);
             const unitPrice = Math.max(0, Number(line.unit_price !== undefined ? line.unit_price : line.unit_price_cents) || 0);
@@ -1117,117 +1120,135 @@ const SupabaseClient = {
 
             const lineTotalCents = Math.round(computedLineTotal);
 
-            await this.restRequest('invoice_lines', {
-                method: 'POST',
-                body: JSON.stringify({
-                    invoice_id: createdInv.id,
-                    product_id: line.product_id,
-                    quantity: qty,
-                    unit_price_cents: Math.round(unitPrice),
-                    discount_bps: discBps,
-                    tax_rate_bps: taxRate,
-                    cgst_cents: Math.round(cgst),
-                    sgst_cents: Math.round(sgst),
-                    igst_cents: Math.round(igst),
-                    line_total_cents: lineTotalCents
-                })
+            invoiceLinesBatch.push({
+                invoice_id: createdInv.id,
+                product_id: line.product_id,
+                quantity: qty,
+                unit_price_cents: Math.round(unitPrice),
+                discount_bps: discBps,
+                tax_rate_bps: taxRate,
+                cgst_cents: Math.round(cgst),
+                sgst_cents: Math.round(sgst),
+                igst_cents: Math.round(igst),
+                line_total_cents: lineTotalCents
             });
 
-            // Deduct stock in Supabase
-            try {
-                const balRecs = await this.restRequest(`inventory_balances?warehouse_id=eq.${invoicePayload.warehouse_id}&product_id=eq.${line.product_id}`);
-                if (balRecs && balRecs.length > 0) {
-                    const currentStock = Number(balRecs[0].quantity_on_hand) || 0;
-                    const updatedStock = Math.max(0, currentStock - qty);
-                    await this.restRequest(`inventory_balances?id=eq.${balRecs[0].id}`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                            quantity_on_hand: updatedStock,
-                            updated_at: new Date().toISOString()
-                        })
-                    });
-                }
-            } catch (stockErr) {
-                console.warn("[Stock update notice]", stockErr);
+            // Prepare parallel stock deduction task
+            if (line.product_id) {
+                stockDeductionTasks.push((async () => {
+                    try {
+                        const balRecs = await this.restRequest(`inventory_balances?warehouse_id=eq.${invoicePayload.warehouse_id}&product_id=eq.${line.product_id}`);
+                        if (balRecs && balRecs.length > 0) {
+                            const currentStock = Number(balRecs[0].quantity_on_hand) || 0;
+                            const updatedStock = Math.max(0, currentStock - qty);
+                            await this.restRequest(`inventory_balances?id=eq.${balRecs[0].id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                    quantity_on_hand: updatedStock,
+                                    updated_at: new Date().toISOString()
+                                })
+                            });
+                        }
+                    } catch (stockErr) {
+                        console.warn("[Stock update notice]", stockErr);
+                    }
+                })());
             }
         }
 
-        // 3. Post Balanced Double-Entry Journal
-        try {
-            const taxable = saleData.taxable_amount || (saleData.subtotal - (saleData.discount_total || 0));
-            const journalPayload = {
-                organization_id: "00000000-0000-0000-0000-000000000001",
-                entry_number: `JE-${Date.now().toString().slice(-6)}`,
-                entry_date: invoicePayload.invoice_date,
-                source_document: invoiceNo,
-                narration: `POS sale checkout ${invoiceNo}`,
-                total_debit_cents: Math.round(saleData.grand_total),
-                total_credit_cents: Math.round(saleData.grand_total),
-                status: "POSTED",
-                created_by: user ? user.id : null
-            };
-
-            const jrRes = await this.restRequest('journal_entries', {
+        // 3. Concurrently Insert All Lines & Execute Parallel Stock Deductions (< 200ms)
+        const linesInsertPromise = invoiceLinesBatch.length > 0
+            ? this.restRequest('invoice_lines', {
                 method: 'POST',
-                body: JSON.stringify(journalPayload)
-            });
+                body: JSON.stringify(invoiceLinesBatch)
+            })
+            : Promise.resolve([]);
 
-            if (jrRes && jrRes[0]) {
-                const jeId = jrRes[0].id;
-                // Debit Cash
-                await this.restRequest('journal_lines', {
+        await Promise.all([linesInsertPromise, ...stockDeductionTasks]);
+
+        // 4. Background Ledger Posting, Payment Recording & Audit Logging (Non-blocking)
+        (async () => {
+            try {
+                // Insert Payment Record
+                await this.restRequest('payments', {
                     method: 'POST',
                     body: JSON.stringify({
-                        journal_entry_id: jeId,
-                        account_id: "a0000000-0000-0000-0000-000000000001", // Cash
-                        debit_cents: Math.round(saleData.grand_total),
-                        credit_cents: 0,
-                        memo: "Cash received at POS register"
+                        organization_id: "00000000-0000-0000-0000-000000000001",
+                        invoice_id: createdInv.id,
+                        customer_id: customer.id,
+                        payment_number: `PAY-${Date.now().toString().slice(-6)}`,
+                        payment_date: invoicePayload.invoice_date,
+                        amount_cents: Math.round(saleData.grand_total),
+                        payment_method: saleData.payment_method || "CASH",
+                        status: "COMPLETED",
+                        notes: `POS cashier checkout at ${saleData.counter_name || 'Counter 01'}`
                     })
-                });
-                // Credit Revenue
-                await this.restRequest('journal_lines', {
+                }).catch(() => {});
+
+                // Post Balanced Double-Entry Journal
+                const taxable = saleData.taxable_amount || (saleData.subtotal - (saleData.discount_total || 0));
+                const jrRes = await this.restRequest('journal_entries', {
                     method: 'POST',
                     body: JSON.stringify({
-                        journal_entry_id: jeId,
-                        account_id: "a0000000-0000-0000-0000-000000000009", // Revenue
-                        debit_cents: 0,
-                        credit_cents: Math.round(taxable),
-                        memo: "Sales revenue"
+                        organization_id: "00000000-0000-0000-0000-000000000001",
+                        entry_number: `JE-${Date.now().toString().slice(-6)}`,
+                        entry_date: invoicePayload.invoice_date,
+                        source_document: invoiceNo,
+                        narration: `POS sale checkout ${invoiceNo}`,
+                        total_debit_cents: Math.round(saleData.grand_total),
+                        total_credit_cents: Math.round(saleData.grand_total),
+                        status: "POSTED",
+                        created_by: user ? user.id : null
                     })
                 });
-                // Credit CGST
-                if (saleData.cgst_amount > 0) {
-                    await this.restRequest('journal_lines', {
-                        method: 'POST',
-                        body: JSON.stringify({
+
+                if (jrRes && jrRes[0]) {
+                    const jeId = jrRes[0].id;
+                    const journalLines = [
+                        {
+                            journal_entry_id: jeId,
+                            account_id: "a0000000-0000-0000-0000-000000000001", // Cash
+                            debit_cents: Math.round(saleData.grand_total),
+                            credit_cents: 0,
+                            memo: "Cash received at POS register"
+                        },
+                        {
+                            journal_entry_id: jeId,
+                            account_id: "a0000000-0000-0000-0000-000000000009", // Revenue
+                            debit_cents: 0,
+                            credit_cents: Math.round(taxable),
+                            memo: "Sales revenue"
+                        }
+                    ];
+                    if (saleData.cgst_amount > 0) {
+                        journalLines.push({
                             journal_entry_id: jeId,
                             account_id: "a0000000-0000-0000-0000-000000000006", // CGST
                             debit_cents: 0,
                             credit_cents: Math.round(saleData.cgst_amount),
                             memo: "Output CGST"
-                        })
-                    });
-                }
-                // Credit SGST
-                if (saleData.sgst_amount > 0) {
-                    await this.restRequest('journal_lines', {
-                        method: 'POST',
-                        body: JSON.stringify({
+                        });
+                    }
+                    if (saleData.sgst_amount > 0) {
+                        journalLines.push({
                             journal_entry_id: jeId,
                             account_id: "a0000000-0000-0000-0000-000000000007", // SGST
                             debit_cents: 0,
                             credit_cents: Math.round(saleData.sgst_amount),
                             memo: "Output SGST"
-                        })
+                        });
+                    }
+                    await this.restRequest('journal_lines', {
+                        method: 'POST',
+                        body: JSON.stringify(journalLines)
                     });
                 }
-            }
-        } catch (jeErr) {
-            console.warn("[Journal entry auto-post notice]", jeErr);
-        }
 
-        await this.logAudit("SALE_CHECKOUT", "INVOICE", createdInv.id, `POS sale completed: ${invoiceNo} (₹${(createdInv.grand_total_cents / 100).toFixed(2)}) at ${saleData.counter_name || 'Counter 01'} by ${user ? user.full_name : 'Cashier'}`);
+                await this.logAudit("SALE_CHECKOUT", "INVOICE", createdInv.id, `POS sale completed: ${invoiceNo} (₹${(createdInv.grand_total_cents / 100).toFixed(2)}) at ${saleData.counter_name || 'Counter 01'} by ${user ? user.full_name : 'Cashier'}`);
+            } catch (bgErr) {
+                console.warn("[Background audit & ledger notice]", bgErr);
+            }
+        })();
         return {
             ...createdInv,
             customer: customer,

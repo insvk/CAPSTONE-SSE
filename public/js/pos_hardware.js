@@ -510,3 +510,4 @@
     window.PosHardware = PosHardware;
 
 })(typeof window !== 'undefined' ? window : this);
+
