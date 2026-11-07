@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * CSA0201-B-CAPSTONE-IMBS :: Main Application Controller & Router
- * Tabler Dark Design System & 100% Live Supabase Cloud Sync
+ * IMBS Dark Design System & 100% Live Supabase Cloud Sync
  * ==============================================================================
  */
 
@@ -10,11 +10,13 @@ const App = {
 
     init() {
         this.bindEvents();
-        // Check authentication first
-        window.AuthController.init();
+        // Check authentication
+        if (window.AuthController) {
+            window.AuthController.init();
+        }
 
-        if (window.AuthController.isAuthenticated()) {
-            this.navigateTo('dashboard');
+        if (!window.AuthController || window.AuthController.isAuthenticated()) {
+            this.navigateTo(this.currentView || 'dashboard');
         }
     },
 
@@ -257,6 +259,9 @@ const App = {
 
 window.App = App;
 
-document.addEventListener('DOMContentLoaded', () => {
+// Resilient initialization that works whether loaded before or after DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => App.init());
+} else {
     App.init();
-});
+}

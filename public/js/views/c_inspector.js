@@ -1,5 +1,5 @@
 /**
- * Tabler Dark UI :: Academic C Engine Inspector View
+ * IMBS Dark UI :: Academic C Engine Inspector View
  * Demonstrates C-First Architecture, Memory Structures & Benchmark Performance
  */
 

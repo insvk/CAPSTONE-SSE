@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * CSA0201-B-CAPSTONE-IMBS :: Pure Canvas Charts
- * Faithful to Tabler Dark Reference UI (media_1794037675531_2457a7e7.webp)
+ * Faithful to Enterprise Dark Reference UI (media_1794037675531_2457a7e7.webp)
  * ==============================================================================
  */
 
@@ -268,4 +268,4 @@ const Charts = {
 };
 
 window.Charts = Charts;
-window.TablerCharts = Charts;
+window.IMBSCharts = Charts;

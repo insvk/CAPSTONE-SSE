@@ -221,3 +221,4 @@ const AuthController = {
 };
 
 window.AuthController = AuthController;
+

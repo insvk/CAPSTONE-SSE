@@ -8,7 +8,15 @@
 
 const api = {
     getBaseUrl() {
-        const customBackend = localStorage.getItem('imbs_backend_url') || (window.ENV && window.ENV.BACKEND_URL);
+        let customBackend = null;
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                customBackend = window.localStorage.getItem('imbs_backend_url');
+            }
+        } catch (_) {}
+        if (!customBackend && typeof window !== 'undefined' && window.ENV) {
+            customBackend = window.ENV.BACKEND_URL;
+        }
         if (customBackend) {
             return `${customBackend.replace(/\/$/, '')}/api/v1`;
         }

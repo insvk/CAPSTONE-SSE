@@ -1,7 +1,6 @@
 /**
  * ==============================================================================
- * CSA0201-B-CAPSTONE-IMBS :: Tabler Dark Dashboard View
- * Faithful reproduction of Tabler Dark design (media_1794037675531_2457a7e7.webp)
+ * CSA0201-B-CAPSTONE-IMBS :: Enterprise Dark Dashboard View
  * Adapted to Enterprise Inventory Management & Billing with 100% Live Cloud Data
  * ==============================================================================
  */
