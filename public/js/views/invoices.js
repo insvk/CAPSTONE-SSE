@@ -98,14 +98,14 @@ const InvoicesView = {
                 <div class="tblr-modal-dialog" style="max-width: 650px;">
                     <div class="tblr-modal-header">
                         <h3 class="tblr-modal-title">Tax Invoice Document</h3>
-                        <button class="tblr-modal-close" onclick="InvoicesView.closeDetailModal()">✕</button>
+                        <button class="tblr-modal-close" onclick="InvoicesView.closeDetailModal()">&times;</button>
                     </div>
                     <div class="tblr-modal-body" id="invoice-doc-body">
                         <!-- Invoice Document -->
                     </div>
                     <div class="tblr-modal-footer">
                         <button type="button" class="tblr-btn tblr-btn-default" onclick="InvoicesView.closeDetailModal()">Close</button>
-                        <button type="button" class="tblr-btn tblr-btn-primary" onclick="window.print()">🖨 Print Invoice</button>
+                        <button type="button" class="tblr-btn tblr-btn-primary" onclick="window.print()">Print Invoice</button>
                     </div>
                 </div>
             </div>

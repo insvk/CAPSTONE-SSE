@@ -21,7 +21,7 @@ const CInspectorView = {
                         </div>
                         <div>
                             <button class="tblr-btn tblr-btn-primary" onclick="CInspectorView.runLiveBenchmark()">
-                                ⚡ Run 1,000-Iteration C Engine Benchmark
+                                Run 1,000-Iteration C Engine Benchmark
                             </button>
                         </div>
                     </div>

@@ -149,10 +149,10 @@ const StaffView = {
                                         </td>
                                         <td style="text-align: right; white-space: nowrap;">
                                             <button class="tblr-btn tblr-btn-sm tblr-btn-primary" style="margin-right: 6px;" title="Edit employee name, title, role or profile picture" onclick="StaffView.showEditModal('${s.id}')">
-                                                ✏️ Edit
+                                                Edit
                                             </button>
                                             <button class="tblr-btn tblr-btn-sm tblr-btn-default" title="Sign in as this user" onclick="StaffView.switchUser('${s.email}', '${s.role}', '${s.full_name.replace(/'/g, "\\'")}')">
-                                                Switch ⇄
+                                                Switch User
                                             </button>
                                         </td>
                                     </tr>
@@ -213,7 +213,7 @@ const StaffView = {
                             Updates employee name, title, profile picture (PFP) and role in Supabase PostgreSQL
                         </div>
                     </div>
-                    <button class="tblr-modal-close" onclick="document.getElementById('modal-edit-staff').remove()">✕</button>
+                    <button class="tblr-modal-close" onclick="document.getElementById('modal-edit-staff').remove()">&times;</button>
                 </div>
                 <form onsubmit="StaffView.handleEditSubmit(event, '${staff.id}')">
                     <div class="tblr-modal-body" style="padding: 20px;">
@@ -291,7 +291,7 @@ const StaffView = {
                             Cancel
                         </button>
                         <button type="submit" id="staff-edit-submit-btn" class="tblr-btn tblr-btn-primary">
-                            ✓ Save Changes to Supabase
+                            Save Changes to Supabase
                         </button>
                     </div>
                 </form>
@@ -358,7 +358,7 @@ const StaffView = {
             window.App.showToast("Failed to save changes: " + err.message, "danger");
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerText = '✓ Save Changes to Supabase';
+                submitBtn.innerText = 'Save Changes to Supabase';
             }
         }
     },
@@ -381,7 +381,7 @@ const StaffView = {
                             Creates a new staff profile and assigns an RBAC role in Supabase
                         </div>
                     </div>
-                    <button class="tblr-modal-close" onclick="document.getElementById('modal-add-staff').remove()">✕</button>
+                    <button class="tblr-modal-close" onclick="document.getElementById('modal-add-staff').remove()">&times;</button>
                 </div>
                 <form onsubmit="StaffView.handleAddSubmit(event)">
                     <div class="tblr-modal-body" style="padding: 20px;">

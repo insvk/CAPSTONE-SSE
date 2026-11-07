@@ -47,7 +47,7 @@ const CustomersView = {
                 <div class="shadcn-metric-card">
                     <span class="shadcn-metric-label">REGISTERED CLIENTS & B2C</span>
                     <div class="shadcn-metric-val">${totalCustomers} <span style="font-size: 13px; font-weight: 400; color: var(--text-muted);">accounts</span></div>
-                    <span class="shadcn-trend-pill up">✓ Live Cloud Synced</span>
+                    <span class="shadcn-trend-pill up">Live Cloud Synced</span>
                 </div>
                 <div class="shadcn-metric-card">
                     <span class="shadcn-metric-label">TRADE RECEIVABLES BALANCE</span>
@@ -109,7 +109,7 @@ const CustomersView = {
                                     </td>
                                     <td>
                                         ${c.phone 
-                                            ? `<span style="font-family: var(--font-mono); font-size: 12px; color: #4ade80;">📱 ${c.phone}</span>` 
+                                            ? `<span style="font-family: var(--font-mono); font-size: 12px; color: #4ade80;">${c.phone}</span>` 
                                             : '<span style="color: var(--text-muted); font-size: 11px;">Not specified</span>'}
                                     </td>
                                     <td>
@@ -128,10 +128,10 @@ const CustomersView = {
                                     </td>
                                     <td style="text-align: right; white-space: nowrap;">
                                         <button class="shadcn-btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="CustomersView.viewHistory('${c.id}', '${encodeURIComponent(c.name)}', '${c.phone || ''}')" title="View all POS orders and bills">
-                                            📜 History
+                                            History
                                         </button>
                                         <button class="shadcn-btn-secondary" style="padding: 4px 8px; font-size: 11px; margin-left: 4px;" onclick="CustomersView.quickPOS('${c.id}', '${encodeURIComponent(c.name)}', '${c.phone || ''}')" title="Start POS sale for this customer">
-                                            ⚡ Bill
+                                            POS Bill
                                         </button>
                                     </td>
                                 </tr>
@@ -149,7 +149,7 @@ const CustomersView = {
                             <h3 class="shadcn-modal-title" id="history-cust-title">Customer Order History</h3>
                             <div style="font-size: 11px; color: var(--text-muted);" id="history-cust-sub">All transactions synchronized in Supabase</div>
                         </div>
-                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-customer-history').style.display='none'">✕</button>
+                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-customer-history').style.display='none'">&times;</button>
                     </div>
                     <div class="shadcn-modal-body" id="history-cust-body" style="padding: 16px;">
                         <!-- Invoices Render Here -->
@@ -189,7 +189,7 @@ const CustomersView = {
                 const badge = document.getElementById('cust-sync-badge');
                 if (phoneInput) phoneInput.value = phone || '';
                 if (nameInput) nameInput.value = name || '';
-                if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = '✓ Verified Customer'; }
+                if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = 'Verified Customer'; }
             }
         }, 150);
     },
@@ -282,7 +282,7 @@ const CustomersView = {
                             Saves B2B account or retail mobile record directly to Supabase
                         </div>
                     </div>
-                    <button class="shadcn-modal-close" onclick="document.getElementById('modal-add-customer').remove()">✕</button>
+                    <button class="shadcn-modal-close" onclick="document.getElementById('modal-add-customer').remove()">&times;</button>
                 </div>
                 <form onsubmit="CustomersView.handleAddSubmit(event)">
                     <div class="shadcn-modal-body">

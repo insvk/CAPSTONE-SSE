@@ -236,7 +236,7 @@ const AuthController = {
                             <div style="font-size: 12px; color: #6b7280;">Choose a verified enterprise passkey</div>
                         </div>
                     </div>
-                    <button type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #9ca3af;" onclick="document.getElementById('modal-passkey-prompt').remove()">✕</button>
+                    <button type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #9ca3af;" onclick="document.getElementById('modal-passkey-prompt').remove()">&times;</button>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 8px; margin: 18px 0;">
@@ -246,7 +246,7 @@ const AuthController = {
                             <div style="font-weight: 600; font-size: 13px; color: #111827;">Naresh S</div>
                             <div style="font-size: 11px; color: #6b7280;">Super Administrator (Full Access)</div>
                         </div>
-                        <span style="font-size: 11px; font-weight: 600; color: #2563eb;">Passkey 🔑</span>
+                        <span style="font-size: 11px; font-weight: 600; color: #2563eb;">Passkey Verified</span>
                     </button>
 
                     <button type="button" class="imbs-passkey-item-btn" onclick="AuthController.authenticatePasskey('cashier@sse.inv.com')">
@@ -255,7 +255,7 @@ const AuthController = {
                             <div style="font-weight: 600; font-size: 13px; color: #111827;">Aman Verma</div>
                             <div style="font-size: 11px; color: #6b7280;">POS Cashier (Billing Counter)</div>
                         </div>
-                        <span style="font-size: 11px; font-weight: 600; color: #059669;">Passkey 🔑</span>
+                        <span style="font-size: 11px; font-weight: 600; color: #059669;">Passkey Verified</span>
                     </button>
 
                     <button type="button" class="imbs-passkey-item-btn" onclick="AuthController.authenticatePasskey('inventory@sse.inv.com')">
@@ -264,7 +264,7 @@ const AuthController = {
                             <div style="font-weight: 600; font-size: 13px; color: #111827;">Vikram Mehta</div>
                             <div style="font-size: 11px; color: #6b7280;">Inventory & Stock Manager</div>
                         </div>
-                        <span style="font-size: 11px; font-weight: 600; color: #d97706;">Passkey 🔑</span>
+                        <span style="font-size: 11px; font-weight: 600; color: #d97706;">Passkey Verified</span>
                     </button>
                 </div>
 

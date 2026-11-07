@@ -72,7 +72,7 @@ const ProductsView = {
                 <div class="tblr-modal-dialog" style="max-width: 540px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
                     <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
                         <h3 class="tblr-modal-title" style="color: #ffffff; font-size: 16px;">Create New Master SKU Product</h3>
-                        <button class="tblr-modal-close" onclick="ProductsView.hideAddModal()">✕</button>
+                        <button class="tblr-modal-close" onclick="ProductsView.hideAddModal()">&times;</button>
                     </div>
                     <form id="form-create-product" onsubmit="ProductsView.handleCreateProduct(event)">
                         <div class="tblr-modal-body" style="padding: 20px;">

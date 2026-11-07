@@ -49,7 +49,7 @@ const ProcurementView = {
                         + Add Supplier
                     </button>
                     <button class="tblr-btn tblr-btn-primary" onclick="ProcurementView.showGRNModal()">
-                        📥 Receive Inward Stock (GRN)
+                        Receive Inward Stock (GRN)
                     </button>
                 </div>
             </div>
@@ -128,7 +128,7 @@ const ProcurementView = {
                 <div class="tblr-modal-dialog" style="max-width: 500px;">
                     <div class="tblr-modal-header">
                         <h3 class="tblr-modal-title">Receive Inward Stock (GRN)</h3>
-                        <button class="tblr-modal-close" onclick="ProcurementView.hideGRNModal()">✕</button>
+                        <button class="tblr-modal-close" onclick="ProcurementView.hideGRNModal()">&times;</button>
                     </div>
                     <form onsubmit="ProcurementView.handleGRNSubmit(event)">
                         <div class="tblr-modal-body">
@@ -180,7 +180,7 @@ const ProcurementView = {
                 <div class="tblr-modal-dialog" style="max-width: 460px;">
                     <div class="tblr-modal-header">
                         <h3 class="tblr-modal-title">Register New Supplier</h3>
-                        <button class="tblr-modal-close" onclick="ProcurementView.hideAddSupplierModal()">✕</button>
+                        <button class="tblr-modal-close" onclick="ProcurementView.hideAddSupplierModal()">&times;</button>
                     </div>
                     <form onsubmit="ProcurementView.handleCreateSupplier(event)">
                         <div class="tblr-modal-body">

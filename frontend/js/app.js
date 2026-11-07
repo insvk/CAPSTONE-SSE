@@ -192,7 +192,7 @@ const App = {
             });
 
             this.closeEditMyProfileModal();
-            this.showToast('✓ Profile and avatar updated in Supabase cloud!', 'success');
+            this.showToast('Profile and avatar updated in Supabase cloud!', 'success');
             this.updateUserDisplay();
 
             // Refresh current view if it's staff or dashboard
@@ -207,7 +207,7 @@ const App = {
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerText = '✓ Save Profile & Photo';
+                btn.innerText = 'Save Profile & Photo';
             }
         }
     },
@@ -338,7 +338,7 @@ const App = {
     exportData() {
         this.showToast('Generating CSV report from live Supabase ledger...', 'info');
         setTimeout(() => {
-            this.showToast('✓ Export complete: IMBS_Enterprise_Ledger_2026.csv downloaded.', 'success');
+            this.showToast('Export complete: IMBS_Enterprise_Ledger_2026.csv downloaded.', 'success');
         }, 800);
     },
 
@@ -363,7 +363,6 @@ const App = {
         const bg = type === 'success' ? '#15803d' : type === 'danger' ? '#b91c1c' : '#1e293b';
         toast.style.cssText = `background: ${bg}; color: #ffffff; padding: 10px 16px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,0.1); animation: slideIn 0.2s ease-out;`;
         toast.innerHTML = `
-            <span>${type === 'success' ? '✓' : type === 'danger' ? '✕' : 'ℹ'}</span>
             <span>${message}</span>
         `;
         container.appendChild(toast);
@@ -435,7 +434,7 @@ const App = {
 
         if (window.StoreConfig) {
             window.StoreConfig.saveProfile(payload);
-            this.showToast('✓ Store details updated! Applied to all printed receipts and bills.', 'success');
+            this.showToast('Store details updated! Applied to all printed receipts and bills.', 'success');
             this.closeStoreProfileModal();
             if (this.currentView === 'pos' && window.PosView) {
                 window.PosView.render(document.getElementById('main-content'));
@@ -468,17 +467,33 @@ const App = {
             resEl.innerText = 'Connecting to Supabase PostgreSQL 17...';
         }
         try {
-            const products = await window.SupabaseClient.getProducts();
+            const urlInput = document.getElementById('cfg-supabase-url')?.value.trim();
+            const keyInput = document.getElementById('cfg-supabase-anon-key')?.value.trim();
+            let products;
+            if (urlInput && keyInput && (urlInput !== window.SupabaseClient.getUrl() || keyInput !== window.SupabaseClient.getKey())) {
+                const testUrl = `${urlInput.replace(/\/$/, '')}/rest/v1/products?select=id,sku,name&limit=5`;
+                const resp = await fetch(testUrl, {
+                    headers: { 'apikey': keyInput, 'Authorization': `Bearer ${keyInput}` }
+                });
+                if (!resp.ok) {
+                    const txt = await resp.text();
+                    throw new Error(`[Supabase Error ${resp.status}] ${txt}`);
+                }
+                products = await resp.json();
+            } else {
+                products = await window.SupabaseClient.getProducts();
+            }
+
             if (resEl) {
                 resEl.style.background = 'rgba(34, 197, 94, 0.15)';
                 resEl.style.color = '#4ade80';
-                resEl.innerText = `✓ Connected! Live DB responded with ${products.length} products.`;
+                resEl.innerText = `Connected! Live DB responded with ${products.length} products.`;
             }
         } catch (err) {
             if (resEl) {
                 resEl.style.background = 'rgba(239, 68, 68, 0.15)';
                 resEl.style.color = '#f87171';
-                resEl.innerText = `✕ Error connecting: ${err.message}`;
+                resEl.innerText = `Error connecting: ${err.message}`;
             }
         }
     },

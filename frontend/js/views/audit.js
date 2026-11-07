@@ -38,7 +38,7 @@ const AuditView = {
                         </div>
                     </div>
                     <button class="tblr-btn tblr-btn-default" onclick="AuditView.render(document.getElementById('main-content'))">
-                        ↻ Refresh Logs
+                        Refresh Logs
                     </button>
                 </div>
 

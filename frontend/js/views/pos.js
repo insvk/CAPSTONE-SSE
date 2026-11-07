@@ -62,11 +62,11 @@ const PosView = {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 18px; background: #121215; border: 1px solid #222226; border-radius: 8px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 32px; height: 32px; border-radius: 6px; background: #22c55e; color: #09090b; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">
-                        ⚡
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                     </div>
                     <div>
                         <div style="font-size: 14px; font-weight: 700; color: #ffffff;">${storeProfile.shop_name}</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">GSTIN: <span style="font-family: monospace; color: #a1a1aa;">${storeProfile.gstin}</span> • POS Terminal Pro</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">GSTIN: <span style="font-family: monospace; color: #a1a1aa;">${storeProfile.gstin}</span> • POS Terminal</div>
                     </div>
                 </div>
 
@@ -83,10 +83,10 @@ const PosView = {
                         </select>
                     </div>
                     <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="PosView.showManageCountersModal()" title="Configure Multi-Counter Network">
-                        ⚙ Counters
+                        Counters
                     </button>
                     <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="App.openStoreProfileModal()" title="Edit Store Details on Printed Bill">
-                        🏢 Store Profile
+                        Store Profile
                     </button>
                 </div>
             </div>
@@ -97,12 +97,12 @@ const PosView = {
                     <!-- High-Speed Barcode & Search Bar -->
                     <div style="display: grid; grid-template-columns: 1fr 180px; gap: 10px;">
                         <div style="position: relative;">
-                            <input type="text" id="pos-barcode-scanner" class="shadcn-input" placeholder="⚡ Scan Barcode (EAN-13) or enter SKU & press Enter..." style="height: 42px; font-size: 13px; padding-left: 36px; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);" onkeydown="PosView.handleBarcodeKeydown(event)" autofocus />
+                            <input type="text" id="pos-barcode-scanner" class="shadcn-input" placeholder="Scan Barcode (EAN-13) or enter SKU & press Enter..." style="height: 42px; font-size: 13px; padding-left: 36px; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);" onkeydown="PosView.handleBarcodeKeydown(event)" autofocus />
                             <svg style="position: absolute; left: 12px; top: 13px; color: #3b82f6;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>
                             </svg>
                         </div>
-                        <input type="text" id="pos-search" class="shadcn-input" placeholder="🔍 Filter products..." style="height: 42px;" oninput="PosView.filterCatalog(this.value)" />
+                        <input type="text" id="pos-search" class="shadcn-input" placeholder="Filter products..." style="height: 42px;" oninput="PosView.filterCatalog(this.value)" />
                     </div>
 
                     <!-- Category Filter Tabs -->
@@ -127,12 +127,12 @@ const PosView = {
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Customer Details</span>
                             <span id="cust-sync-badge" class="shadcn-badge ${this.currentCustomer.phone ? 'green' : 'default'}" style="font-size: 10px;">
-                                ${this.currentCustomer.phone ? '✓ Registered' : 'Walk-in Cash'}
+                                ${this.currentCustomer.phone ? 'Registered Customer' : 'Walk-in Cash'}
                             </span>
                         </div>
                         <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
                             <div>
-                                <input type="tel" id="pos-cust-phone" class="shadcn-input" placeholder="📱 Mobile No." style="height: 32px; font-size: 12px; font-family: monospace;" value="${this.currentCustomer.phone || ''}" oninput="PosView.handlePhoneLookup(this.value)" />
+                                <input type="tel" id="pos-cust-phone" class="shadcn-input" placeholder="Mobile Number" style="height: 32px; font-size: 12px; font-family: monospace;" value="${this.currentCustomer.phone || ''}" oninput="PosView.handlePhoneLookup(this.value)" />
                             </div>
                             <div>
                                 <input type="text" id="pos-cust-name" class="shadcn-input" placeholder="Customer Name" style="height: 32px; font-size: 12px;" value="${this.currentCustomer.name || 'Walk-in Retail Cash Customer'}" onchange="PosView.updateCustomerName(this.value)" />
@@ -174,7 +174,7 @@ const PosView = {
 
                     <!-- Checkout Button -->
                     <button class="pos-btn-checkout" id="pos-btn-pay" onclick="PosView.openCheckoutModal()" ${this.cart.length === 0 ? 'disabled' : ''}>
-                        ⚡ Pay & Print Bill (${this.getFormattedGrandTotal()})
+                        Pay & Print Bill (${this.getFormattedGrandTotal()})
                     </button>
                 </div>
             </div>
@@ -189,7 +189,7 @@ const PosView = {
                                 Terminal: ${this.activeCounter.name}
                             </div>
                         </div>
-                        <button class="shadcn-modal-close" onclick="PosView.closeCheckoutModal()">✕</button>
+                        <button class="shadcn-modal-close" onclick="PosView.closeCheckoutModal()">Close</button>
                     </div>
                     <form onsubmit="PosView.handleCheckout(event)">
                         <div class="shadcn-modal-body">
@@ -207,19 +207,19 @@ const PosView = {
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Payment Tender Method</label>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                     <label class="shadcn-btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px;">
-                                        <input type="radio" name="pay-method" value="CASH" checked onchange="PosView.setPaymentMethod('CASH')" /> 💵 Cash
+                                        <input type="radio" name="pay-method" value="CASH" checked onchange="PosView.setPaymentMethod('CASH')" /> Cash
                                     </label>
                                     <label class="shadcn-btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px;">
-                                        <input type="radio" name="pay-method" value="UPI" onchange="PosView.setPaymentMethod('UPI')" /> 📱 UPI / QR
+                                        <input type="radio" name="pay-method" value="UPI" onchange="PosView.setPaymentMethod('UPI')" /> UPI / QR
                                     </label>
                                     <label class="shadcn-btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px;">
-                                        <input type="radio" name="pay-method" value="CARD" onchange="PosView.setPaymentMethod('CARD')" /> 💳 Card
+                                        <input type="radio" name="pay-method" value="CARD" onchange="PosView.setPaymentMethod('CARD')" /> Card
                                     </label>
                                 </div>
                             </div>
 
                             <div style="margin-bottom: 14px;">
-                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Amount Tendered by Customer (₹)</label>
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Amount Tendered by Customer (INR)</label>
                                 <input type="number" step="0.01" id="checkout-tendered" class="shadcn-input" style="font-size: 18px; font-weight: 700; font-family: var(--font-mono); height: 42px;" oninput="PosView.calculateChange(this.value)" />
                                 <div id="checkout-change-display" style="font-size: 13px; color: #22c55e; margin-top: 6px; font-weight: 600;"></div>
                             </div>
@@ -227,7 +227,7 @@ const PosView = {
                         <div class="shadcn-modal-footer">
                             <button type="button" class="shadcn-btn-secondary" onclick="PosView.closeCheckoutModal()">Cancel</button>
                             <button type="submit" id="btn-confirm-sale" class="shadcn-btn-primary" style="background: #22c55e; color: #09090b; border-color: #22c55e;">
-                                ✓ Generate Bill & Print Receipt
+                                Finalize Bill & Print
                             </button>
                         </div>
                     </form>
@@ -242,7 +242,7 @@ const PosView = {
                             <h3 class="shadcn-modal-title">Tax Invoice Thermal Receipt</h3>
                             <div style="font-size: 11px; color: var(--text-muted);">Unique Sequential Bill Generated</div>
                         </div>
-                        <button class="shadcn-modal-close" onclick="PosView.closeReceiptModal()">✕</button>
+                        <button class="shadcn-modal-close" onclick="PosView.closeReceiptModal()">Close</button>
                     </div>
                     <div class="shadcn-modal-body" style="padding: 16px; background: #000000; overflow-x: auto;">
                         <div id="receipt-print-area">
@@ -255,10 +255,10 @@ const PosView = {
                         </button>
                         <div style="display: flex; gap: 8px;">
                             <button type="button" class="shadcn-btn-secondary" onclick="PosView.downloadThermalSlip()">
-                                📥 Download Slip
+                                Download Slip
                             </button>
                             <button type="button" class="shadcn-btn-primary" onclick="PosView.printReceipt()">
-                                🖨 Print 80mm
+                                Print Receipt (80mm)
                             </button>
                         </div>
                     </div>
@@ -273,7 +273,7 @@ const PosView = {
                             <h3 class="shadcn-modal-title">Multi-Counter Station Network</h3>
                             <div style="font-size: 11px; color: var(--text-muted);">Assign dedicated POS counters across retail hubs</div>
                         </div>
-                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-manage-counters').style.display='none'">✕</button>
+                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-manage-counters').style.display='none'">&times;</button>
                     </div>
                     <div class="shadcn-modal-body">
                         <div style="margin-bottom: 16px;">
@@ -356,7 +356,7 @@ const PosView = {
             if (match) {
                 this.playScanBeep(true);
                 this.addToCart(match.id);
-                App.showToast(`⚡ Scanned: ${match.name}`, 'success');
+                App.showToast(`Scanned: ${match.name}`, 'success');
                 input.value = '';
                 input.focus();
             } else {
@@ -394,7 +394,7 @@ const PosView = {
                 is_verified: true
             };
             if (nameInput) nameInput.value = match.name;
-            if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = '✓ Verified Customer'; }
+            if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = 'Verified Customer'; }
             if (feedback) feedback.innerHTML = `<span style="color: #4ade80;">Found: <strong>${match.name}</strong> • ${match.code}</span>`;
             App.showToast(`Found verified customer: ${match.name}`, 'success');
             return;
@@ -413,7 +413,7 @@ const PosView = {
                     is_verified: true
                 };
                 if (nameInput) nameInput.value = c.name;
-                if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = '✓ Verified Customer'; }
+                if (badge) { badge.className = 'shadcn-badge green'; badge.innerText = 'Verified Customer'; }
                 if (feedback) feedback.innerHTML = `<span style="color: #4ade80;">Found: <strong>${c.name}</strong> • ${c.code}</span>`;
                 return;
             }
@@ -594,7 +594,7 @@ const PosView = {
                     <div style="width: 85px; text-align: right; font-weight: 700; font-family: var(--font-mono); color: #fff;">
                         ₹${lineGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </div>
-                    <button style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;" onclick="PosView.removeFromCart(${idx})" title="Remove">✕</button>
+                    <button style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 16px; line-height: 1;" onclick="PosView.removeFromCart(${idx})" title="Remove">&times;</button>
                 </div>
             `;
         }).join('');
@@ -617,23 +617,51 @@ const PosView = {
         let sgst = 0;
         let igst = 0;
 
-        for (const item of this.cart) {
-            const gross = item.quantity * item.unit_price;
+        const computedItems = this.cart.map(item => {
+            const qty = Math.max(1, Number(item.quantity) || 1);
+            const unitPrice = Number(item.unit_price) || 0;
+            const gross = qty * unitPrice;
             subtotal += gross;
 
-            const taxRate = item.tax_rate_bps || 1800;
-            const lineTax = Math.round((gross * taxRate) / 10000);
+            const discBps = Number(item.discount_bps) || 0;
+            const discAmount = discBps > 0 ? Math.round((gross * discBps) / 10000) : 0;
+            const netTaxable = gross - discAmount;
+            taxable += netTaxable;
+
+            const taxRate = item.tax_rate_bps !== undefined ? Number(item.tax_rate_bps) : 1800;
+            const lineTax = Math.round((netTaxable * taxRate) / 10000);
+
+            let itemCgst = 0;
+            let itemSgst = 0;
+            let itemIgst = 0;
 
             if (this.isInterState) {
+                itemIgst = lineTax;
                 igst += lineTax;
             } else {
-                const c = Math.round(lineTax / 2);
-                cgst += c;
-                sgst += (lineTax - c);
+                itemCgst = Math.round(lineTax / 2);
+                itemSgst = lineTax - itemCgst;
+                cgst += itemCgst;
+                sgst += itemSgst;
             }
 
-            taxable += gross;
-        }
+            const lineTotal = netTaxable + itemCgst + itemSgst + itemIgst;
+
+            return {
+                ...item,
+                quantity: qty,
+                unit_price: unitPrice,
+                line_gross: gross,
+                discount_bps: discBps,
+                discount_amount: discAmount,
+                net_taxable: netTaxable,
+                tax_rate_bps: taxRate,
+                cgst_amount: itemCgst,
+                sgst_amount: itemSgst,
+                igst_amount: itemIgst,
+                line_total: lineTotal
+            };
+        });
 
         const totalTax = cgst + sgst + igst;
         const exact = taxable + totalTax;
@@ -648,7 +676,8 @@ const PosView = {
             igst_amount: igst,
             tax_total: totalTax,
             round_off: roundOff,
-            grand_total: rounded
+            grand_total: rounded,
+            items: computedItems
         };
     },
 
@@ -659,7 +688,7 @@ const PosView = {
         const btn = document.getElementById('pos-btn-pay');
         if (btn) {
             btn.disabled = this.cart.length === 0;
-            btn.innerText = `⚡ Pay & Print Bill (${this.getFormattedGrandTotal()})`;
+            btn.innerText = `Pay & Print Bill (${this.getFormattedGrandTotal()})`;
         }
     },
 
@@ -727,10 +756,10 @@ const PosView = {
 
         if (change >= 0) {
             changeEl.style.color = '#22c55e';
-            changeEl.innerText = `✓ Change Due to Customer: ₹${(change / 100).toFixed(2)}`;
+            changeEl.innerText = `Change Due to Customer: ₹${(change / 100).toFixed(2)}`;
         } else {
             changeEl.style.color = '#ef4444';
-            changeEl.innerText = `✕ Amount Short: ₹${(Math.abs(change) / 100).toFixed(2)}`;
+            changeEl.innerText = `Amount Short: ₹${(Math.abs(change) / 100).toFixed(2)}`;
         }
     },
 
@@ -759,7 +788,7 @@ const PosView = {
                 amount_tendered_cents: tenderedCents,
                 change_due_cents: changeCents,
                 warehouse_id: "20000000-0000-0000-0000-000000000001",
-                items: this.cart,
+                items: q.items,
                 subtotal: q.subtotal,
                 tax_total: q.tax_total,
                 cgst_amount: q.cgst_amount,
@@ -771,14 +800,14 @@ const PosView = {
 
             this.lastInvoice = { ...invoice, quotation: q };
             this.closeCheckoutModal();
-            App.showToast(`✓ Bill ${invoice.invoice_number} saved to Supabase!`, 'success');
+            App.showToast(`Bill ${invoice.invoice_number} saved to Supabase!`, 'success');
             
             // Show Thermal Receipt
             this.renderThermalReceipt(this.lastInvoice);
             this.clearCart();
         } catch (err) {
             App.showToast(`Checkout failed: ${err.message}`, 'danger');
-            if (btn) { btn.disabled = false; btn.innerText = '✓ Generate Bill & Print Receipt'; }
+            if (btn) { btn.disabled = false; btn.innerText = 'Generate Bill & Print Receipt'; }
         }
     },
 

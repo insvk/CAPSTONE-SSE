@@ -60,7 +60,7 @@ const AccountingView = {
                 <div class="tblr-card" style="padding: 16px; border-left: 4px solid ${isBalanced ? '#2fb344' : '#d63939'};">
                     <div style="font-size: 11px; text-transform: uppercase; color: var(--tblr-text-muted); font-weight: 700;">DOUBLE-ENTRY INVARIANT</div>
                     <div style="font-size: 18px; font-weight: 800; color: ${isBalanced ? '#2fb344' : '#ff6b6b'}; margin-top: 6px;">
-                        ${isBalanced ? '✓ 100% BALANCED (ΣD ≡ ΣC)' : '✕ UNBALANCED RESIDUAL'}
+                        ${isBalanced ? 'BALANCED (SUM DR = SUM CR)' : 'UNBALANCED RESIDUAL'}
                     </div>
                 </div>
             </div>
@@ -75,7 +75,7 @@ const AccountingView = {
                         </div>
                     </div>
                     <button class="tblr-btn tblr-btn-default" onclick="AccountingView.render(document.getElementById('main-content'))">
-                        ↻ Refresh Ledger
+                        Refresh Ledger
                     </button>
                 </div>
 

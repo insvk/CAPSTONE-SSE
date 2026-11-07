@@ -556,6 +556,187 @@ const SupabaseClient = {
         return { success: true, new_quantity: newQty };
     },
 
+    async importBulkStock(items, defaultWarehouseId, batchNotes = "Bulk CSV Stock Inward") {
+        const user = this.getCurrentUser();
+        const results = { successCount: 0, errors: [] };
+
+        const mov = await this.restRequest('stock_movements', {
+            method: 'POST',
+            body: JSON.stringify({
+                organization_id: "00000000-0000-0000-0000-000000000001",
+                warehouse_id: defaultWarehouseId,
+                movement_type: "BULK_IMPORT",
+                reference_number: `IMP-${Date.now().toString().slice(-6)}`,
+                notes: batchNotes,
+                created_by: user ? user.id : null
+            })
+        });
+        const movId = mov && mov[0] ? mov[0].id : null;
+
+        for (const item of items) {
+            try {
+                const skuCode = (item.sku || "").trim();
+                if (!skuCode) continue;
+
+                // Find product by SKU
+                const products = await this.restRequest(`products?sku=eq.${encodeURIComponent(skuCode)}`);
+                if (!products || products.length === 0) {
+                    results.errors.push(`SKU "${skuCode}" not found in master product catalog.`);
+                    continue;
+                }
+                const prod = products[0];
+                const whId = item.warehouse_id || defaultWarehouseId;
+                const qtyToAdd = Number(item.quantity) || 0;
+                const unitCostCents = item.unit_cost_cents ? Number(item.unit_cost_cents) : (Number(prod.purchase_price_cents) || 0);
+
+                const balances = await this.restRequest(`inventory_balances?warehouse_id=eq.${whId}&product_id=eq.${prod.id}`);
+                let newBalQty = qtyToAdd;
+                let newWac = unitCostCents;
+
+                if (balances && balances.length > 0) {
+                    const bal = balances[0];
+                    const currentQty = Number(bal.quantity_on_hand) || 0;
+                    const currentWac = Number(bal.weighted_avg_cost_cents) || 0;
+                    newBalQty = Math.max(0, currentQty + qtyToAdd);
+
+                    if (qtyToAdd > 0 && (currentQty + qtyToAdd) > 0) {
+                        newWac = Math.round(((currentQty * currentWac) + (qtyToAdd * unitCostCents)) / (currentQty + qtyToAdd));
+                    } else {
+                        newWac = currentWac;
+                    }
+
+                    await this.restRequest(`inventory_balances?id=eq.${bal.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            quantity_on_hand: newBalQty,
+                            weighted_avg_cost_cents: newWac,
+                            updated_at: new Date().toISOString()
+                        })
+                    });
+                } else {
+                    await this.restRequest('inventory_balances', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            warehouse_id: whId,
+                            product_id: prod.id,
+                            quantity_on_hand: newBalQty,
+                            quantity_reserved: 0,
+                            weighted_avg_cost_cents: newWac
+                        })
+                    });
+                }
+
+                if (movId) {
+                    await this.restRequest('stock_movement_items', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            movement_id: movId,
+                            product_id: prod.id,
+                            quantity_delta: qtyToAdd,
+                            unit_cost_cents: unitCostCents,
+                            balance_after: newBalQty
+                        })
+                    });
+                }
+                results.successCount++;
+            } catch (rowErr) {
+                results.errors.push(`Row ${item.sku}: ${rowErr.message}`);
+            }
+        }
+
+        await this.logAudit("BULK_STOCK_IMPORT", "INVENTORY", defaultWarehouseId, `Imported ${results.successCount} stock items via bulk import.`);
+        return results;
+    },
+
+    async transferStock(sourceWarehouseId, targetWarehouseId, productId, qty, notes = "Inter-Hub Transfer") {
+        const user = this.getCurrentUser();
+        const quantity = Math.max(1, Number(qty) || 1);
+
+        // Verify source balance
+        const srcBals = await this.restRequest(`inventory_balances?warehouse_id=eq.${sourceWarehouseId}&product_id=eq.${productId}`);
+        if (!srcBals || srcBals.length === 0 || Number(srcBals[0].quantity_on_hand) < quantity) {
+            throw new Error(`Insufficient stock available in source warehouse.`);
+        }
+
+        const src = srcBals[0];
+        const newSrcQty = Number(src.quantity_on_hand) - quantity;
+        const wac = Number(src.weighted_avg_cost_cents) || 0;
+
+        // Deduct from source
+        await this.restRequest(`inventory_balances?id=eq.${src.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                quantity_on_hand: newSrcQty,
+                updated_at: new Date().toISOString()
+            })
+        });
+
+        // Add to target
+        const tgtBals = await this.restRequest(`inventory_balances?warehouse_id=eq.${targetWarehouseId}&product_id=eq.${productId}`);
+        let newTgtQty = quantity;
+        if (tgtBals && tgtBals.length > 0) {
+            const tgt = tgtBals[0];
+            newTgtQty = Number(tgt.quantity_on_hand) + quantity;
+            await this.restRequest(`inventory_balances?id=eq.${tgt.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    quantity_on_hand: newTgtQty,
+                    updated_at: new Date().toISOString()
+                })
+            });
+        } else {
+            await this.restRequest('inventory_balances', {
+                method: 'POST',
+                body: JSON.stringify({
+                    warehouse_id: targetWarehouseId,
+                    product_id: productId,
+                    quantity_on_hand: quantity,
+                    quantity_reserved: 0,
+                    weighted_avg_cost_cents: wac
+                })
+            });
+        }
+
+        // Record stock movements
+        const mov = await this.restRequest('stock_movements', {
+            method: 'POST',
+            body: JSON.stringify({
+                organization_id: "00000000-0000-0000-0000-000000000001",
+                warehouse_id: sourceWarehouseId,
+                movement_type: "TRANSFER",
+                reference_number: `TRF-${Date.now().toString().slice(-6)}`,
+                notes: `${notes}: Moved ${quantity} units from source to destination hub`,
+                created_by: user ? user.id : null
+            })
+        });
+
+        if (mov && mov[0]) {
+            await this.restRequest('stock_movement_items', {
+                method: 'POST',
+                body: JSON.stringify({
+                    movement_id: mov[0].id,
+                    product_id: productId,
+                    quantity_delta: -quantity,
+                    unit_cost_cents: wac,
+                    balance_after: newSrcQty
+                })
+            });
+        }
+
+        await this.logAudit("STOCK_TRANSFER", "INVENTORY", productId, `Transferred ${quantity} units between warehouses (${notes})`);
+        return { success: true, source_remaining: newSrcQty, target_new: newTgtQty };
+    },
+
+    async reconcileStock(warehouseId, productId, actualCount, reason = "Cycle Count Audit") {
+        const balances = await this.restRequest(`inventory_balances?warehouse_id=eq.${warehouseId}&product_id=eq.${productId}`);
+        if (!balances || balances.length === 0) throw new Error("Inventory balance record not found.");
+        const bal = balances[0];
+        const currentQty = Number(bal.quantity_on_hand) || 0;
+        const physical = Math.max(0, Number(actualCount) || 0);
+        const delta = physical - currentQty;
+        return await this.adjustStock(warehouseId, productId, delta, `Physical Audit Reconciliation (${reason})`);
+    },
+
     async getStockMovements() {
         const query = `stock_movements?select=id,movement_type,reference_number,notes,created_at,stock_movement_items(quantity_delta,unit_cost_cents,balance_after,products(sku,name))&order=created_at.desc&limit=50`;
         const movements = await this.restRequest(query);
@@ -758,20 +939,55 @@ const SupabaseClient = {
         const createdInv = invRes[0];
 
         // 2. Insert Invoice Lines & Decrement Stock
-        for (const line of saleData.items) {
+        for (const line of (saleData.items || [])) {
+            const qty = Math.max(1, Number(line.quantity) || 1);
+            const unitPrice = Math.max(0, Number(line.unit_price !== undefined ? line.unit_price : line.unit_price_cents) || 0);
+            const gross = qty * unitPrice;
+            const discBps = Math.max(0, Number(line.discount_bps) || 0);
+            const disc = discBps > 0 ? Math.round((gross * discBps) / 10000) : 0;
+            const netTaxable = gross - disc;
+            const taxRate = Number(line.tax_rate_bps !== undefined ? line.tax_rate_bps : 1800);
+            const calcTax = Math.round((netTaxable * taxRate) / 10000);
+
+            let cgst = Number(line.cgst_amount !== undefined ? line.cgst_amount : line.cgst_cents);
+            let sgst = Number(line.sgst_amount !== undefined ? line.sgst_amount : line.sgst_cents);
+            let igst = Number(line.igst_amount !== undefined ? line.igst_amount : line.igst_cents);
+
+            if (isNaN(cgst) || isNaN(sgst) || isNaN(igst) || (cgst === 0 && sgst === 0 && igst === 0)) {
+                if (saleData.is_interstate) {
+                    igst = calcTax;
+                    cgst = 0;
+                    sgst = 0;
+                } else {
+                    cgst = Math.round(calcTax / 2);
+                    sgst = calcTax - cgst;
+                    igst = 0;
+                }
+            }
+
+            let computedLineTotal = (line.line_total !== undefined && line.line_total !== null && !isNaN(Number(line.line_total)))
+                ? Number(line.line_total)
+                : (netTaxable + cgst + sgst + igst);
+
+            if (isNaN(computedLineTotal) || computedLineTotal < 0) {
+                computedLineTotal = netTaxable + calcTax;
+            }
+
+            const lineTotalCents = Math.round(computedLineTotal);
+
             await this.restRequest('invoice_lines', {
                 method: 'POST',
                 body: JSON.stringify({
                     invoice_id: createdInv.id,
                     product_id: line.product_id,
-                    quantity: line.quantity,
-                    unit_price_cents: Math.round(line.unit_price),
-                    discount_bps: line.discount_bps || 0,
-                    tax_rate_bps: line.tax_rate_bps || 1800,
-                    cgst_cents: Math.round(line.cgst_amount || 0),
-                    sgst_cents: Math.round(line.sgst_amount || 0),
-                    igst_cents: Math.round(line.igst_amount || 0),
-                    line_total_cents: Math.round(line.line_total)
+                    quantity: qty,
+                    unit_price_cents: Math.round(unitPrice),
+                    discount_bps: discBps,
+                    tax_rate_bps: taxRate,
+                    cgst_cents: Math.round(cgst),
+                    sgst_cents: Math.round(sgst),
+                    igst_cents: Math.round(igst),
+                    line_total_cents: lineTotalCents
                 })
             });
 
@@ -780,7 +996,7 @@ const SupabaseClient = {
                 const balRecs = await this.restRequest(`inventory_balances?warehouse_id=eq.${invoicePayload.warehouse_id}&product_id=eq.${line.product_id}`);
                 if (balRecs && balRecs.length > 0) {
                     const currentStock = Number(balRecs[0].quantity_on_hand) || 0;
-                    const updatedStock = Math.max(0, currentStock - Number(line.quantity));
+                    const updatedStock = Math.max(0, currentStock - qty);
                     await this.restRequest(`inventory_balances?id=eq.${balRecs[0].id}`, {
                         method: 'PATCH',
                         body: JSON.stringify({
