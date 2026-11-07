@@ -20,12 +20,12 @@ const api = {
         if (customBackend) {
             return `${customBackend.replace(/\/$/, '')}/api/v1`;
         }
-        return '/api/v1';
+        return '/api?path=';
     },
 
     async request(endpoint, options = {}) {
         const base = this.getBaseUrl();
-        const url = `${base}/${endpoint}`;
+        const url = base.includes('?path=') ? `${base}${endpoint}` : `${base}/${endpoint}`;
         const defaultHeaders = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -52,25 +52,22 @@ const api = {
         } catch (err) {
             console.warn(`[API Network Notice] ${endpoint}:`, err.message);
 
-            // Optional direct Supabase fallback for read operations if configured
-            if (window.SupabaseClient && window.SupabaseClient.isConfigured() && (!options.method || options.method === 'GET')) {
+            // Transparent Supabase Direct Fallback
+            if (window.SupabaseClient) {
                 try {
-                    if (endpoint === 'products') {
-                        const supaData = await window.SupabaseClient.query('products', { select: 'id,sku,barcode,name,description,base_uom,purchase_price_cents,selling_price_cents,reorder_point,is_active' });
-                        if (supaData && supaData.length > 0) {
-                            return supaData.map(p => ({
-                                ...p,
-                                purchase_price: p.purchase_price_cents,
-                                selling_price: p.selling_price_cents
-                            }));
-                        }
-                    }
-                    if (endpoint === 'inventory/balances') {
-                        const supaData = await window.SupabaseClient.query('v_inventory_valuation');
-                        if (supaData && supaData.length > 0) return supaData;
-                    }
+                    if (endpoint === 'products') return await window.SupabaseClient.getProducts();
+                    if (endpoint === 'inventory/balances') return await window.SupabaseClient.getInventoryBalances();
+                    if (endpoint === 'inventory/movements') return await window.SupabaseClient.getStockMovements();
+                    if (endpoint === 'invoices') return await window.SupabaseClient.getInvoices();
+                    if (endpoint === 'suppliers') return await window.SupabaseClient.getSuppliers();
+                    if (endpoint === 'customers') return await window.SupabaseClient.getCustomers();
+                    if (endpoint === 'staff' || endpoint === 'users') return await window.SupabaseClient.getStaff();
+                    if (endpoint === 'accounting/journal-entries') return await window.SupabaseClient.getJournalEntries();
+                    if (endpoint === 'accounting/chart-of-accounts') return await window.SupabaseClient.getChartOfAccounts();
+                    if (endpoint === 'reports/dashboard-summary') return await window.SupabaseClient.getDashboardStats();
+                    if (endpoint === 'audit-events') return await window.SupabaseClient.getAuditEvents();
                 } catch (supaErr) {
-                    console.error("[Supabase Fallback Error]", supaErr);
+                    console.error("[Supabase Direct Fallback Error]", supaErr);
                 }
             }
 

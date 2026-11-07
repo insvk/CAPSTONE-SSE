@@ -23,9 +23,10 @@ const PosView = {
         try {
             const [prods, custs] = await Promise.all([
                 window.SupabaseClient.getProducts(),
-                window.SupabaseClient.getSuppliers() // or customers
+                window.SupabaseClient.getCustomers()
             ]);
-            this.products = prods;
+            this.products = prods || [];
+            this.customers = custs || [];
             this.renderLayout(container);
         } catch (err) {
             container.innerHTML = `
@@ -106,9 +107,10 @@ const PosView = {
                             <div class="tblr-form-group">
                                 <label class="tblr-form-label">Customer</label>
                                 <select id="checkout-customer" class="tblr-form-control">
-                                    <option value="80000000-0000-0000-0000-000000000003">Walk-in Retail Cash Customer</option>
-                                    <option value="80000000-0000-0000-0000-000000000001">Acme Industrial Solutions Pvt Ltd</option>
-                                    <option value="80000000-0000-0000-0000-000000000002">Starlight Enterprises Bangalore</option>
+                                    ${(this.customers && this.customers.length > 0)
+                                        ? this.customers.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join('')
+                                        : '<option value="80000000-0000-0000-0000-000000000003">Walk-in Retail Cash Customer</option>'
+                                    }
                                 </select>
                             </div>
 

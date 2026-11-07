@@ -86,7 +86,9 @@ const CustomersView = {
                             </tr>
                         </thead>
                         <tbody>
-                            ${this.customersList.map(c => `
+                            ${this.customersList.length === 0 ? `
+                                <tr><td colspan="8" style="text-align: center; color: var(--tblr-text-muted); padding: 32px;">No customers found. Click '+ Add Customer' to register client accounts.</td></tr>
+                            ` : this.customersList.map(c => `
                                 <tr>
                                     <td><span class="tblr-badge tblr-badge-blue">${c.code}</span></td>
                                     <td>
@@ -249,3 +251,4 @@ const CustomersView = {
 };
 
 window.CustomersView = CustomersView;
+

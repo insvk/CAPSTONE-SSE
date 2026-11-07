@@ -97,7 +97,9 @@ const StaffView = {
                             </tr>
                         </thead>
                         <tbody>
-                            ${this.staffList.map(s => {
+                            ${this.staffList.length === 0 ? `
+                                <tr><td colspan="7" style="text-align: center; color: var(--tblr-text-muted); padding: 32px;">No staff records found. Click '+ Add Staff Member' to configure staff RBAC.</td></tr>
+                            ` : this.staffList.map(s => {
                                 let badgeClass = 'tblr-badge-default';
                                 let scope = 'Standard';
                                 if (s.role === 'SUPER_ADMIN') {
@@ -261,3 +263,4 @@ const StaffView = {
 };
 
 window.StaffView = StaffView;
+

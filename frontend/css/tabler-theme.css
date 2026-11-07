@@ -98,24 +98,26 @@ body {
 }
 
 .tblr-navbar-inner {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 24px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     height: 58px;
+    gap: 12px;
 }
 
 .tblr-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     text-decoration: none;
     color: #ffffff;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 17px;
     letter-spacing: -0.5px;
+    flex-shrink: 0;
 }
 
 .tblr-brand-icon {
@@ -135,26 +137,39 @@ body {
 .tblr-nav-menu {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     list-style: none;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex: 1;
+    margin: 0 10px;
+}
+
+.tblr-nav-menu::-webkit-scrollbar {
+    display: none;
 }
 
 .tblr-nav-item {
     position: relative;
+    flex-shrink: 0;
 }
 
 .tblr-nav-link {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 5px;
+    padding: 6px 10px;
     color: var(--tblr-text-secondary);
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
+    white-space: nowrap;
     border-radius: var(--tblr-radius-sm);
     transition: var(--tblr-transition);
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .tblr-nav-link:hover {
@@ -169,15 +184,16 @@ body {
 }
 
 .tblr-nav-link svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     opacity: 0.8;
 }
 
 .tblr-navbar-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .tblr-icon-btn {

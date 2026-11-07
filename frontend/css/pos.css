@@ -5,9 +5,16 @@
 
 .pos-container {
     display: grid;
-    grid-template-columns: 1fr 420px;
-    gap: 20px;
-    height: calc(100vh - 150px);
+    grid-template-columns: 1fr 390px;
+    gap: 18px;
+    min-height: calc(100vh - 140px);
+    height: auto;
+}
+
+@media (max-width: 1080px) {
+    .pos-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 .pos-catalog-panel {

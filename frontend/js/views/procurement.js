@@ -71,7 +71,9 @@ const ProcurementView = {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${this.suppliers.map(s => `
+                                ${this.suppliers.length === 0 ? `
+                                    <tr><td colspan="3" style="text-align: center; color: var(--tblr-text-muted); padding: 24px;">No suppliers registered yet. Click '+ Add Supplier'.</td></tr>
+                                ` : this.suppliers.map(s => `
                                     <tr>
                                         <td>
                                             <div style="font-weight: 700; color: #fff;">${s.name}</div>

@@ -143,6 +143,10 @@ const InventoryView = {
     },
 
     renderBalancesTable() {
+        if (!this.balances || this.balances.length === 0) {
+            return `<div style="padding: 36px; text-align: center; color: var(--tblr-text-muted);">No stock balances recorded yet. Click '+ Stock Adjustment' to record initial physical inventory.</div>`;
+        }
+
         return `
             <table class="tblr-table">
                 <thead>

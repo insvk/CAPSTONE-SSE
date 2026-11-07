@@ -11,15 +11,23 @@
   },
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
-      "destination": "/api/index.js"
+      "source": "/api/v1/:path*",
+      "destination": "/api?path=:path*"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "source": "/api/v1",
+      "destination": "/api?path=health"
     },
     {
-      "source": "/((?!api/|css/|js/|favicon.ico).*)",
+      "source": "/api/:path*",
+      "destination": "/api?path=:path*"
+    },
+    {
+      "source": "/api",
+      "destination": "/api?path=health"
+    },
+    {
+      "source": "/((?!api|css|js|favicon.ico).*)",
       "destination": "/index.html"
     }
   ],
