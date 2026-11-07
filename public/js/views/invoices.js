@@ -153,6 +153,11 @@ const InvoicesView = {
         const sub = (inv.subtotal / 100).toFixed(2);
         const tax = (inv.tax_amount / 100).toFixed(2);
         const grand = (inv.grand_total / 100).toFixed(2);
+        const store = window.StoreConfig ? window.StoreConfig.getProfile() : {};
+
+        const barcodeSvg = window.BarcodeQR ? window.BarcodeQR.code128(inv.invoice_number, { width: 220, height: 42, showText: true }) : '';
+        const upiUrl = window.BarcodeQR ? window.BarcodeQR.getUpiUrl(store, { grand_total_cents: inv.grand_total, invoice_number: inv.invoice_number }) : '';
+        const qrSvg = (window.BarcodeQR && upiUrl) ? window.BarcodeQR.qr(upiUrl, { size: 90 }) : '';
 
         const body = document.getElementById('invoice-doc-body');
         if (!body) return;
@@ -161,21 +166,24 @@ const InvoicesView = {
             <div style="background: #ffffff; color: #111; padding: 24px; border-radius: 8px; font-family: sans-serif; font-size: 13px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px;">
                     <div>
-                        <h2 style="margin: 0; font-size: 18px; color: #0f172a;">TAX INVOICE</h2>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Original for Recipient</div>
+                        <h2 style="margin: 0; font-size: 18px; color: #0f172a; text-transform: uppercase;">TAX INVOICE</h2>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Original for Recipient • Sequential Bill</div>
+                        <div style="font-size: 11px; color: #059669; font-weight: 600; margin-top: 2px;">GSTIN Compliant Document</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-weight: bold; font-size: 14px; color: #206bc4;">Apex Global Enterprises Ltd</div>
-                        <div style="font-size: 11px; color: #64748b;">GSTIN: 27AABCU9603R1ZM</div>
-                        <div style="font-size: 11px; color: #64748b;">BKC Complex, Mumbai - 400051</div>
+                        <div style="font-weight: bold; font-size: 15px; color: #0f172a;">${store.shop_name || 'SSE ENTERPRISE'}</div>
+                        <div style="font-size: 11px; color: #64748b;">${store.tagline || ''}</div>
+                        <div style="font-size: 11px; color: #64748b;">${store.address_line1 || ''}, ${store.address_line2 || ''}</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #0f172a;">GSTIN: ${store.gstin || '27AABCU9603R1ZM'}</div>
+                        <div style="font-size: 11px; color: #64748b;">Phone: ${store.phone || '+91 98765 43210'}</div>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                     <div>
                         <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">BILLED TO:</div>
-                        <div style="font-weight: bold; font-size: 14px; margin-top: 2px;">${inv.customer_name}</div>
-                        <div style="font-size: 12px; color: #475569;">State: Maharashtra (27)</div>
+                        <div style="font-weight: bold; font-size: 14px; margin-top: 2px;">${inv.customer_name || 'Walk-in Cash Customer'}</div>
+                        <div style="font-size: 12px; color: #475569;">Customer Account: Verified Registry</div>
                     </div>
                     <div style="text-align: right;">
                         <div><strong>Invoice No:</strong> ${inv.invoice_number}</div>
@@ -203,7 +211,7 @@ const InvoicesView = {
                             </tr>
                         `).join('') : `
                             <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px;">Hardware Merchandize Item</td>
+                                <td style="padding: 8px;">Standard Merchandize Item</td>
                                 <td style="text-align: center; padding: 8px;">1</td>
                                 <td style="text-align: right; padding: 8px;">₹${sub}</td>
                                 <td style="text-align: right; padding: 8px;">₹${sub}</td>
@@ -212,18 +220,31 @@ const InvoicesView = {
                     </tbody>
                 </table>
 
-                <div style="display: flex; justify-content: flex-end;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <div style="text-align: center;">
+                            ${qrSvg}
+                            <div style="font-size: 8.5px; color: #64748b; margin-top: 2px;">UPI / QR Verification</div>
+                        </div>
+                        <div>
+                            ${barcodeSvg}
+                        </div>
+                    </div>
                     <div style="width: 240px; font-size: 13px;">
                         <div style="display: flex; justify-content: space-between; padding: 4px 0;">
                             <span>Subtotal:</span><span>₹${sub}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                            <span>GST Tax (CGST+SGST):</span><span>₹${tax}</span>
+                            <span>GST Tax:</span><span>₹${tax}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 2px solid #0f172a; font-weight: bold; font-size: 15px;">
                             <span>Total Due:</span><span>₹${grand}</span>
                         </div>
                     </div>
+                </div>
+
+                <div style="margin-top: 18px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                    ${store.footer_note || 'Thank you for shopping with us!'}
                 </div>
             </div>
         `;

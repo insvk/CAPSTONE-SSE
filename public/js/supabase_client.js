@@ -471,12 +471,136 @@ const SupabaseClient = {
         return createdProd;
     },
 
+    async updateProduct(id, prod) {
+        const patchPayload = {
+            sku: prod.sku.trim(),
+            name: prod.name.trim(),
+            barcode: (prod.barcode || '').trim(),
+            purchase_price_cents: Math.round(Number(prod.purchase_price) || 0),
+            selling_price_cents: Math.round(Number(prod.selling_price) || 0),
+            base_uom: prod.base_uom || 'PCS',
+            reorder_point: Number(prod.reorder_point) || 10,
+            is_active: prod.is_active !== undefined ? prod.is_active : true,
+            updated_at: new Date().toISOString()
+        };
+        if (prod.category_id) patchPayload.category_id = prod.category_id;
+        if (prod.tax_category_id) patchPayload.tax_category_id = prod.tax_category_id;
+
+        const updated = await this.restRequest(`products?id=eq.${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(patchPayload)
+        });
+
+        await this.logAudit("PRODUCT_UPDATE", "PRODUCT", id, `Updated product ${patchPayload.sku} (${patchPayload.name})`);
+        return updated && updated[0] ? updated[0] : null;
+    },
+
     async deleteProduct(id) {
-        // Delete balance first
-        await this.restRequest(`inventory_balances?product_id=eq.${id}`, { method: 'DELETE' });
+        // Check for historical sales or purchases
+        const invLines = await this.restRequest(`invoice_lines?product_id=eq.${id}&limit=1`).catch(() => []);
+        const poLines = await this.restRequest(`purchase_order_items?product_id=eq.${id}&limit=1`).catch(() => []);
+
+        if ((invLines && invLines.length > 0) || (poLines && poLines.length > 0)) {
+            // Soft delete to maintain historical accounting audit invariants
+            await this.restRequest(`products?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() })
+            });
+            await this.logAudit("PRODUCT_DEACTIVATE", "PRODUCT", id, `Deactivated product ID ${id} due to historical transactions.`);
+            return { softDeleted: true, message: 'Product has historical sales records; deactivated successfully from active catalog.' };
+        }
+
+        // Hard delete if clean
+        await this.restRequest(`inventory_balances?product_id=eq.${id}`, { method: 'DELETE' }).catch(() => {});
         const res = await this.restRequest(`products?id=eq.${id}`, { method: 'DELETE' });
         await this.logAudit("PRODUCT_DELETE", "PRODUCT", id, `Deleted product ID ${id}`);
-        return res;
+        return { softDeleted: false, message: 'Product deleted permanently from cloud database.', res };
+    },
+
+    async importBulkProducts(items, defaultWarehouseId = "20000000-0000-0000-0000-000000000001") {
+        const results = { created: 0, updated: 0, errors: [] };
+        const categories = await this.getCategories();
+        const defaultCatId = categories && categories[0] ? categories[0].id : "40000000-0000-0000-0000-000000000001";
+        const defaultTaxId = "50000000-0000-0000-0000-000000000002"; // 18% GST
+
+        for (const item of items) {
+            try {
+                const sku = (item.sku || '').trim().toUpperCase();
+                if (!sku) continue;
+                const name = (item.name || sku).trim();
+                const barcode = (item.barcode || sku).trim();
+                const uom = (item.base_uom || item.uom || 'PCS').trim().toUpperCase();
+                const buy = Math.round(Number(item.purchase_price_cents || item.purchase_price || 0) * (item.purchase_price_cents ? 1 : 100));
+                const sell = Math.round(Number(item.selling_price_cents || item.selling_price || 0) * (item.selling_price_cents ? 1 : 100));
+                const stock = Math.max(0, parseInt(item.initial_stock || item.stock || 0, 10));
+
+                const existing = await this.restRequest(`products?sku=eq.${encodeURIComponent(sku)}`);
+                if (existing && existing.length > 0) {
+                    const prodId = existing[0].id;
+                    await this.restRequest(`products?id=eq.${prodId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            name,
+                            barcode,
+                            purchase_price_cents: buy,
+                            selling_price_cents: sell,
+                            base_uom: uom,
+                            updated_at: new Date().toISOString()
+                        })
+                    });
+                    results.updated++;
+                } else {
+                    const newProd = await this.restRequest('products', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            organization_id: "00000000-0000-0000-0000-000000000001",
+                            sku,
+                            name,
+                            barcode,
+                            category_id: item.category_id || defaultCatId,
+                            base_uom: uom,
+                            purchase_price_cents: buy,
+                            selling_price_cents: sell,
+                            tax_category_id: item.tax_category_id || defaultTaxId,
+                            reorder_point: 10,
+                            is_active: true
+                        })
+                    });
+                    if (newProd && newProd[0]) {
+                        await this.restRequest('inventory_balances', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                warehouse_id: defaultWarehouseId,
+                                product_id: newProd[0].id,
+                                quantity_on_hand: stock,
+                                quantity_reserved: 0,
+                                weighted_avg_cost_cents: buy
+                            })
+                        }).catch(() => {});
+                    }
+                    results.created++;
+                }
+            } catch (err) {
+                results.errors.push(`Row ${item.sku || 'Unknown'}: ${err.message}`);
+            }
+        }
+
+        await this.logAudit("BULK_PRODUCT_IMPORT", "PRODUCT", "CATALOG", `Bulk imported ${results.created} new products, updated ${results.updated}.`);
+        return results;
+    },
+
+    async deleteStockBalance(balanceId, productId, warehouseId, reason = "Zero-Out / Balance Write-Off") {
+        await this.restRequest(`inventory_balances?id=eq.${balanceId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                quantity_on_hand: 0,
+                quantity_reserved: 0,
+                updated_at: new Date().toISOString()
+            })
+        });
+
+        await this.logAudit("STOCK_BALANCE_ZERO_OUT", "INVENTORY", balanceId, `Zeroed out balance for Product ${productId} at WH ${warehouseId}. Reason: ${reason}`);
+        return { success: true };
     },
 
     // --------------------------------------------------------------------------
@@ -899,6 +1023,24 @@ const SupabaseClient = {
                 body: JSON.stringify({
                     name: data.shop_name,
                     tax_identifier: data.gstin
+                })
+            });
+
+            // Store extended configuration in audit_events for cross-session/cross-device persistence
+            await this.restRequest('audit_events', {
+                method: 'POST',
+                body: JSON.stringify({
+                    organization_id: "00000000-0000-0000-0000-000000000001",
+                    action: "STORE_CONFIG_SYNC",
+                    entity_type: "SYSTEM_SETTINGS",
+                    entity_id: "10000000-0000-0000-0000-000000000001",
+                    details: JSON.stringify({
+                        tagline: data.tagline,
+                        fssai: data.fssai,
+                        upi_id: data.upi_id,
+                        footer_note: data.footer_note
+                    }),
+                    created_at: new Date().toISOString()
                 })
             });
         } catch (e) {

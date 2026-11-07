@@ -85,6 +85,9 @@ const PosView = {
                     <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="PosView.showManageCountersModal()" title="Configure Multi-Counter Network">
                         Counters
                     </button>
+                    <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="PosHardware.showHardwareModal()" title="Configure Thermal Printer, Cash Drawer, Barcode Gun & Displays">
+                        Hardware & Devices
+                    </button>
                     <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="App.openStoreProfileModal()" title="Edit Store Details on Printed Bill">
                         Store Profile
                     </button>
@@ -562,6 +565,9 @@ const PosView = {
         const el = document.getElementById('pos-cart-items');
         if (el) el.innerHTML = this.renderCartItems();
         this.updateTotals();
+        if (window.PosHardware && window.PosHardware.updateCustomerDisplay) {
+            window.PosHardware.updateCustomerDisplay(this.cart);
+        }
     },
 
     renderCartItems() {
@@ -830,6 +836,11 @@ const PosView = {
         const tendered = ((inv.amount_tendered_cents || inv.grand_total_cents) / 100).toFixed(2);
         const change = ((inv.change_due_cents || 0) / 100).toFixed(2);
 
+        // Generate dynamic SVG Barcode & QR Code
+        const barcodeSvg = window.BarcodeQR ? window.BarcodeQR.code128(inv.invoice_number, { width: 220, height: 42, showText: true }) : '';
+        const upiUrl = window.BarcodeQR ? window.BarcodeQR.getUpiUrl(store, inv) : '';
+        const qrSvg = (window.BarcodeQR && upiUrl) ? window.BarcodeQR.qr(upiUrl, { size: 100 }) : '';
+
         area.innerHTML = `
             <div id="printable-thermal-slip" style="width: 320px; margin: 0 auto; background: #ffffff; color: #000000; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.35; padding: 18px 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
                 <!-- Store Header -->
@@ -862,7 +873,7 @@ const PosView = {
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span>Station  :</span>
-                    <span>${inv.counter_name || 'Counter 01'}</span>
+                    <span>${inv.counter_name || (this.activeCounter ? this.activeCounter.name : 'Counter 01')}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span>Cashier  :</span>
@@ -953,15 +964,21 @@ const PosView = {
 
                 <div style="border-top: 1px dashed #000000; margin: 8px 0;"></div>
 
-                <!-- Barcode Graphic Placeholder -->
+                <!-- Code-128 Barcode Graphic -->
                 <div style="text-align: center; margin: 10px 0 6px 0;">
-                    <div style="font-family: 'Libre Barcode 39', monospace, sans-serif; font-size: 26px; letter-spacing: 2px;">
-                        *${inv.invoice_number.replace(/-/g, '')}*
-                    </div>
-                    <div style="font-size: 9px; letter-spacing: 1px;">${inv.invoice_number}</div>
+                    ${barcodeSvg}
                 </div>
 
-                <div style="text-align: center; font-size: 10px; margin-top: 8px;">
+                <!-- Dynamic UPI QR Code for instant smartphone payment -->
+                <div style="text-align: center; margin: 10px 0; padding: 6px; background: #ffffff; border: 1px dashed #666; border-radius: 4px;">
+                    <div style="font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Scan & Pay via UPI / Verify Bill</div>
+                    ${qrSvg}
+                    <div style="font-size: 8.5px; color: #555; margin-top: 2px;">VPA: ${store.upi_id || 'sse.retail@icici'}</div>
+                </div>
+
+                ${store.fssai ? `<div style="text-align: center; font-size: 9px; margin-top: 4px;">FSSAI Lic: ${store.fssai}</div>` : ''}
+
+                <div style="text-align: center; font-size: 10px; margin-top: 6px;">
                     ${store.footer_note || 'Thank you for shopping with us! Visit again.'}
                 </div>
             </div>
@@ -978,6 +995,11 @@ const PosView = {
     printReceipt() {
         const content = document.getElementById('printable-thermal-slip');
         if (!content) return;
+
+        // Auto-open cash drawer on receipt print if cash payment
+        if (window.PosHardware && (this.lastInvoice && this.lastInvoice.payment_method === 'CASH')) {
+            window.PosHardware.kickCashDrawer().catch(() => {});
+        }
 
         const printWindow = window.open('', '_blank', 'width=380,height=600');
         printWindow.document.write(`

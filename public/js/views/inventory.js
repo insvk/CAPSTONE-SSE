@@ -411,11 +411,14 @@ const InventoryView = {
                                     </span>
                                 </td>
                                 <td style="text-align: right; white-space: nowrap;">
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 8px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock">
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock">
                                         Adjust
                                     </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="InventoryView.openQuickTransfer('${b.warehouse_id}', '${b.product_id}')" title="Transfer to another hub">
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickTransfer('${b.warehouse_id}', '${b.product_id}')" title="Transfer to another hub">
                                         Transfer
+                                    </button>
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" onclick="InventoryView.zeroOutStock('${b.id}', '${b.product_id}', '${b.warehouse_id}', '${b.sku}')" title="Write off / zero out balance">
+                                        Write-Off
                                     </button>
                                 </td>
                             </tr>
@@ -734,6 +737,18 @@ const InventoryView = {
         link.click();
         link.remove();
         App.showToast('Inventory ledger exported to CSV file.', 'info');
+    },
+
+    async zeroOutStock(balanceId, productId, warehouseId, sku) {
+        if (!confirm(`Are you sure you want to write-off and zero out all remaining stock for "${sku}" at this warehouse?`)) return;
+        try {
+            App.showToast(`Zeroing out stock for ${sku}...`, 'info');
+            await window.SupabaseClient.deleteStockBalance(balanceId, productId, warehouseId, 'Manual Write-Off / Stock Removal');
+            App.showToast(`Stock balance for ${sku} written off successfully.`, 'success');
+            await this.render(document.getElementById('main-content'));
+        } catch (err) {
+            App.showToast(`Write-off failed: ${err.message}`, 'danger');
+        }
     }
 };
 

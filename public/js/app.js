@@ -10,6 +10,10 @@ const App = {
 
     init() {
         this.bindEvents();
+        // Load dynamic store configuration from cloud DB
+        if (window.StoreConfig && window.StoreConfig.loadFromCloud) {
+            window.StoreConfig.loadFromCloud().catch(() => {});
+        }
         // Check authentication
         if (window.AuthController) {
             window.AuthController.init();
@@ -407,6 +411,7 @@ const App = {
             setVal('cfg-store-email', p.email);
             setVal('cfg-store-gstin', p.gstin);
             setVal('cfg-store-fssai', p.fssai);
+            setVal('cfg-store-upi', p.upi_id || 'sse.retail@icici');
             setVal('cfg-store-footer', p.footer_note);
             modal.style.display = 'flex';
         }
@@ -417,7 +422,7 @@ const App = {
         if (modal) modal.style.display = 'none';
     },
 
-    saveStoreProfile(e) {
+    async saveStoreProfile(e) {
         if (e) e.preventDefault();
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
         const payload = {
@@ -429,15 +434,18 @@ const App = {
             email: getVal('cfg-store-email') || 'contact@sse.inv.com',
             gstin: getVal('cfg-store-gstin') || '27AABCU9603R1ZM',
             fssai: getVal('cfg-store-fssai') || '',
+            upi_id: getVal('cfg-store-upi') || 'sse.retail@icici',
             footer_note: getVal('cfg-store-footer') || 'Thank you for shopping with SSE Enterprise! Visit again.'
         };
 
         if (window.StoreConfig) {
-            window.StoreConfig.saveProfile(payload);
-            this.showToast('Store details updated! Applied to all printed receipts and bills.', 'success');
+            await window.StoreConfig.saveProfile(payload);
+            this.showToast('Store details saved to Supabase cloud! All printed bills updated.', 'success');
             this.closeStoreProfileModal();
             if (this.currentView === 'pos' && window.PosView) {
                 window.PosView.render(document.getElementById('main-content'));
+            } else if (this.currentView === 'invoices' && window.InvoicesView) {
+                window.InvoicesView.render(document.getElementById('main-content'));
             }
         }
     },
