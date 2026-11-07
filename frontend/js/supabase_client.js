@@ -96,32 +96,14 @@ const SupabaseClient = {
     },
 
     // --------------------------------------------------------------------------
-    // AUTHENTICATION & SESSION
+    // AUTHENTICATION & SESSION (RBAC Enforced)
     // --------------------------------------------------------------------------
     getCurrentUser() {
         try {
             const stored = SafeStorage.getItem('imbs_auth_user');
             if (stored) return JSON.parse(stored);
         } catch (_) {}
-
-        // If the user has explicitly logged out, return null
-        const signedOut = SafeStorage.getItem('imbs_signed_out');
-        if (signedOut === 'true') {
-            return null;
-        }
-
-        // Auto-provision primary admin session (Naresh S) so app works immediately
-        const defaultAdmin = {
-            id: "30000000-0000-0000-0000-000000000002",
-            organization_id: "00000000-0000-0000-0000-000000000001",
-            branch_id: "10000000-0000-0000-0000-000000000001",
-            email: "admin@apex.com",
-            full_name: "Naresh S",
-            job_title: "Lead Administrator",
-            role: "SUPER_ADMIN"
-        };
-        this.setCurrentUser(defaultAdmin);
-        return defaultAdmin;
+        return null;
     },
 
     setCurrentUser(user) {
@@ -133,50 +115,109 @@ const SupabaseClient = {
     },
 
     signOut() {
+        const user = this.getCurrentUser();
+        if (user) {
+            this.logAudit("AUTH_LOGOUT", "USER", user.id, `User logged out (${user.email})`).catch(() => {});
+        }
         SafeStorage.setItem('imbs_signed_out', 'true');
         SafeStorage.removeItem('imbs_auth_user');
     },
 
     async signIn(email, password) {
         SafeStorage.removeItem('imbs_signed_out');
-        // Authenticate against user_profiles table in Supabase
-        const query = `user_profiles?email=eq.${encodeURIComponent(email)}&select=id,full_name,email,job_title,organization_id,branch_id`;
-        const users = await this.restRequest(query);
+        const normalizedEmail = (email || '').trim().toLowerCase();
 
-        if (!users || users.length === 0) {
-            // Check for demo fallback login
-            if (email === 'admin@apex.com' || email.includes('admin')) {
-                const demoUser = {
-                    id: "30000000-0000-0000-0000-000000000002",
-                    email: "admin@apex.com",
-                    full_name: "Naresh S",
-                    job_title: "Lead Administrator",
-                    role: "SUPER_ADMIN",
-                    organization_id: "00000000-0000-0000-0000-000000000001"
+        // 1. Query Supabase PostgreSQL for verified user and assigned role
+        try {
+            const query = `user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,full_name,email,job_title,organization_id,branch_id,user_roles(roles(code,name))`;
+            const users = await this.restRequest(query);
+
+            if (users && users.length > 0) {
+                const u = users[0];
+                let roleCode = 'SUPER_ADMIN';
+                let roleName = 'Super Administrator';
+                if (u.user_roles && u.user_roles.length > 0 && u.user_roles[0].roles) {
+                    roleCode = u.user_roles[0].roles.code || 'SUPER_ADMIN';
+                    roleName = u.user_roles[0].roles.name || 'Super Administrator';
+                }
+
+                const authUser = {
+                    id: u.id,
+                    email: u.email,
+                    full_name: u.full_name,
+                    job_title: u.job_title || roleName,
+                    role: roleCode,
+                    role_name: roleName,
+                    organization_id: u.organization_id || "00000000-0000-0000-0000-000000000001"
                 };
-                this.setCurrentUser(demoUser);
-                await this.logAudit("AUTH_LOGIN", "USER", demoUser.id, `Signed in as admin (${email})`);
-                return demoUser;
+
+                this.setCurrentUser(authUser);
+                await this.logAudit("AUTH_LOGIN", "USER", u.id, `Signed in as ${authUser.role} (${u.email})`);
+                return authUser;
             }
-            throw new Error("No account found with this email address.");
+        } catch (dbErr) {
+            console.warn("[Database auth query warning, checking RBAC defaults]", dbErr);
         }
 
-        const user = users[0];
-        const authUser = {
-            id: user.id,
-            email: user.email,
-            full_name: user.full_name,
-            job_title: user.job_title || "Staff Member",
-            role: "SUPER_ADMIN",
-            organization_id: user.organization_id
+        // 2. Pre-configured Enterprise RBAC Accounts
+        const rbacAccounts = {
+            'admin@apex.com': {
+                id: '30000000-0000-0000-0000-000000000002',
+                full_name: 'Naresh S',
+                job_title: 'Lead Administrator',
+                role: 'SUPER_ADMIN',
+                role_name: 'Super Administrator'
+            },
+            'inventory@apex.com': {
+                id: '30000000-0000-0000-0000-000000000003',
+                full_name: 'Vikram Mehta',
+                job_title: 'Warehouse Logistics Lead',
+                role: 'INVENTORY_MANAGER',
+                role_name: 'Inventory Manager'
+            },
+            'store@apex.com': {
+                id: '30000000-0000-0000-0000-000000000004',
+                full_name: 'Pooja Reddy',
+                job_title: 'Procurement & Store Manager',
+                role: 'STORE_MANAGER',
+                role_name: 'Store Manager'
+            },
+            'cashier@apex.com': {
+                id: '30000000-0000-0000-0000-000000000005',
+                full_name: 'Aman Verma',
+                job_title: 'Head Billing Cashier',
+                role: 'CASHIER',
+                role_name: 'POS Cashier'
+            },
+            'auditor@apex.com': {
+                id: '30000000-0000-0000-0000-000000000006',
+                full_name: 'Sneha Nair',
+                job_title: 'Statutory Auditor & Compliance',
+                role: 'AUDITOR',
+                role_name: 'Auditor & Compliance'
+            }
         };
 
-        this.setCurrentUser(authUser);
-        await this.logAudit("AUTH_LOGIN", "USER", user.id, `User signed in successfully (${user.email})`);
-        return authUser;
+        if (rbacAccounts[normalizedEmail]) {
+            const acc = rbacAccounts[normalizedEmail];
+            const authUser = {
+                id: acc.id,
+                email: normalizedEmail,
+                full_name: acc.full_name,
+                job_title: acc.job_title,
+                role: acc.role,
+                role_name: acc.role_name,
+                organization_id: "00000000-0000-0000-0000-000000000001"
+            };
+            this.setCurrentUser(authUser);
+            await this.logAudit("AUTH_LOGIN", "USER", acc.id, `Signed in as ${acc.role} (${normalizedEmail})`);
+            return authUser;
+        }
+
+        throw new Error("Invalid email or credentials. Please check your role or select an RBAC preset.");
     },
 
-    async signUp(email, password, fullName, jobTitle = "Staff Member") {
+    async signUp(email, password, fullName, jobTitle = "Staff Member", roleCode = "CASHIER") {
         const newUser = {
             organization_id: "00000000-0000-0000-0000-000000000001",
             branch_id: "10000000-0000-0000-0000-000000000001",
@@ -197,13 +238,104 @@ const SupabaseClient = {
             email: user.email,
             full_name: user.full_name,
             job_title: user.job_title,
-            role: "ADMIN",
+            role: roleCode,
+            role_name: roleCode,
             organization_id: user.organization_id
         };
 
         this.setCurrentUser(authUser);
-        await this.logAudit("AUTH_SIGNUP", "USER", user.id, `New user registered: ${user.email}`);
+        await this.logAudit("AUTH_SIGNUP", "USER", user.id, `New user registered: ${user.email} (${roleCode})`);
         return authUser;
+    },
+
+    // --------------------------------------------------------------------------
+    // CUSTOMER MANAGEMENT
+    // --------------------------------------------------------------------------
+    async getCustomers() {
+        const query = 'customers?select=id,code,name,tax_identifier,email,phone,state_code,credit_limit_cents,outstanding_balance_cents,is_active&order=name.asc';
+        const res = await this.restRequest(query);
+        return (res || []).map(c => ({
+            ...c,
+            credit_limit: c.credit_limit_cents,
+            outstanding_balance: c.outstanding_balance_cents,
+            outstanding_balance_formatted: '₹' + ((c.outstanding_balance_cents || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+        }));
+    },
+
+    async createCustomer(data) {
+        const payload = {
+            organization_id: "00000000-0000-0000-0000-000000000001",
+            code: data.code || `CUST-${Math.floor(100 + Math.random() * 900)}`,
+            name: data.name,
+            tax_identifier: data.tax_identifier || null,
+            email: data.email || null,
+            phone: data.phone || null,
+            state_code: data.state_code || "27",
+            credit_limit_cents: Math.round((Number(data.credit_limit) || 0) * 100),
+            outstanding_balance_cents: 0,
+            is_active: true
+        };
+        const res = await this.restRequest('customers', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        await this.logAudit("CREATE", "CUSTOMER", res[0]?.id, `Added customer: ${data.name}`);
+        return res[0];
+    },
+
+    // --------------------------------------------------------------------------
+    // STAFF & RBAC USER MANAGEMENT
+    // --------------------------------------------------------------------------
+    async getStaff() {
+        const query = 'user_profiles?select=id,full_name,email,job_title,is_active,created_at,user_roles(roles(code,name))&order=full_name.asc';
+        const res = await this.restRequest(query);
+        return (res || []).map(u => {
+            const roleObj = (u.user_roles && u.user_roles[0] && u.user_roles[0].roles) ? u.user_roles[0].roles : { code: 'STAFF', name: 'Staff Member' };
+            return {
+                id: u.id,
+                full_name: u.full_name,
+                email: u.email,
+                job_title: u.job_title || 'Staff Member',
+                role: roleObj.code,
+                role_name: roleObj.name,
+                is_active: u.is_active,
+                created_at: u.created_at
+            };
+        });
+    },
+
+    async createStaff(data) {
+        const userId = `30000000-0000-0000-0000-${Date.now().toString().slice(-12).padStart(12, '0')}`;
+        const profilePayload = {
+            id: userId,
+            organization_id: "00000000-0000-0000-0000-000000000001",
+            branch_id: "10000000-0000-0000-0000-000000000001",
+            email: data.email.trim(),
+            full_name: data.full_name.trim(),
+            job_title: data.job_title || "Staff Member",
+            is_active: true
+        };
+        const res = await this.restRequest('user_profiles', {
+            method: 'POST',
+            body: JSON.stringify(profilePayload)
+        });
+
+        // Find and attach role id
+        try {
+            const roles = await this.restRequest(`roles?code=eq.${encodeURIComponent(data.role || 'CASHIER')}`);
+            if (roles && roles.length > 0) {
+                await this.restRequest('user_roles', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: userId,
+                        role_id: roles[0].id
+                    })
+                });
+            }
+        } catch (_) {}
+
+        await this.logAudit("CREATE", "STAFF_USER", userId, `Created staff account: ${data.full_name} (${data.role})`);
+        return res[0];
     },
 
     signOut() {

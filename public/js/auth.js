@@ -2,6 +2,7 @@
  * ==============================================================================
  * CSA0201-B-CAPSTONE-IMBS :: Authentication & Login Controller
  * Pebble Minimal Design Reference (media_1794037798392_8defb2c3.jpg)
+ * Role-Based Access Control (RBAC) Supported for All 5 Enterprise Roles
  * ==============================================================================
  */
 
@@ -25,6 +26,9 @@ const AuthController = {
             const mainApp = document.getElementById('imbs-app-root');
             if (mainApp) mainApp.style.display = 'block';
             this.updateNavUser();
+            if (window.App && window.App.applyRBAC) {
+                window.App.applyRBAC();
+            }
             return;
         }
 
@@ -49,20 +53,65 @@ const AuthController = {
                     ${this.isSignUpMode ? 'Create your Account' : 'Sign in to IMBS'}
                 </h2>
                 <p class="imbs-login-subtitle">
-                    ${this.isSignUpMode ? 'Get started with cloud inventory & billing.' : 'Welcome back. Use a passkey, or your email.'}
+                    ${this.isSignUpMode ? 'Register an enterprise account.' : 'Welcome back. Select your role or use email.'}
                 </p>
 
-                <!-- Passkey / Demo Quick Button -->
+                <!-- RBAC Role Quick Switcher Pills -->
                 ${!this.isSignUpMode ? `
-                    <button type="button" class="imbs-passkey-btn" onclick="AuthController.loginDemoAdmin()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 1 0-14 0c0 3.86 3.14 7 7 7v3l2-1 2 1v-3c3.86 0 7-3.14 7-7z"/>
-                        </svg>
-                        Sign in as Demo Administrator
-                    </button>
+                    <div style="margin-bottom: 18px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--tblr-text-muted); text-transform: uppercase; margin-bottom: 8px; text-align: center;">
+                            Select RBAC Role to Login
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <button type="button" class="imbs-role-pill-btn active" onclick="AuthController.loginAsRole('admin@apex.com', 'Admin@Password26', 'SUPER_ADMIN')">
+                                <span style="font-size: 14px;">👑</span>
+                                <div style="text-align: left; flex: 1;">
+                                    <div style="font-weight: 600; font-size: 12px; color: #fff;">Super Administrator (Naresh S)</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">admin@apex.com • Full complete access</div>
+                                </div>
+                                <span class="tblr-badge tblr-badge-blue" style="font-size: 9px;">ADMIN</span>
+                            </button>
 
-                    <div class="imbs-login-divider">
-                        <span>OR</span>
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('inventory@apex.com', 'Manager@2026', 'INVENTORY_MANAGER')">
+                                <span style="font-size: 14px;">📦</span>
+                                <div style="text-align: left; flex: 1;">
+                                    <div style="font-weight: 600; font-size: 12px; color: #fff;">Inventory Manager (Vikram Mehta)</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">inventory@apex.com • Stock, WAC, Catalog</div>
+                                </div>
+                                <span class="tblr-badge tblr-badge-yellow" style="font-size: 9px;">INVENTORY</span>
+                            </button>
+
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('store@apex.com', 'Manager@2026', 'STORE_MANAGER')">
+                                <span style="font-size: 14px;">🛒</span>
+                                <div style="text-align: left; flex: 1;">
+                                    <div style="font-weight: 600; font-size: 12px; color: #fff;">Store Manager (Pooja Reddy)</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">store@apex.com • Procurement, GRN, Suppliers</div>
+                                </div>
+                                <span class="tblr-badge tblr-badge-yellow" style="font-size: 9px;">STORE</span>
+                            </button>
+
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('cashier@apex.com', 'Cashier@2026', 'CASHIER')">
+                                <span style="font-size: 14px;">💳</span>
+                                <div style="text-align: left; flex: 1;">
+                                    <div style="font-weight: 600; font-size: 12px; color: #fff;">POS Cashier (Aman Verma)</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">cashier@apex.com • Billing counter, Receipts</div>
+                                </div>
+                                <span class="tblr-badge tblr-badge-green" style="font-size: 9px;">POS</span>
+                            </button>
+
+                            <button type="button" class="imbs-role-pill-btn" onclick="AuthController.loginAsRole('auditor@apex.com', 'Auditor@2026', 'AUDITOR')">
+                                <span style="font-size: 14px;">🔍</span>
+                                <div style="text-align: left; flex: 1;">
+                                    <div style="font-weight: 600; font-size: 12px; color: #fff;">Auditor & Compliance (Sneha Nair)</div>
+                                    <div style="font-size: 10px; color: #94a3b8;">auditor@apex.com • General Ledger, Audit Logs</div>
+                                </div>
+                                <span class="tblr-badge tblr-badge-purple" style="font-size: 9px;">AUDIT</span>
+                            </button>
+                        </div>
+
+                        <div class="imbs-login-divider" style="margin-top: 14px;">
+                            <span>OR ENTER CREDENTIALS</span>
+                        </div>
                     </div>
                 ` : ''}
 
@@ -73,7 +122,19 @@ const AuthController = {
                             <div class="imbs-login-label-row">
                                 <label class="imbs-login-label">Full Name</label>
                             </div>
-                            <input type="text" id="auth-name" class="imbs-login-input" placeholder="e.g. Naresh S" required />
+                            <input type="text" id="auth-name" class="imbs-login-input" placeholder="e.g. Ramesh Kumar" required />
+                        </div>
+                        <div class="imbs-login-field">
+                            <div class="imbs-login-label-row">
+                                <label class="imbs-login-label">Assigned RBAC Role</label>
+                            </div>
+                            <select id="auth-role" class="imbs-login-input">
+                                <option value="CASHIER">POS Cashier</option>
+                                <option value="INVENTORY_MANAGER">Inventory Manager</option>
+                                <option value="STORE_MANAGER">Store Manager</option>
+                                <option value="AUDITOR">Auditor</option>
+                                <option value="SUPER_ADMIN">Super Administrator</option>
+                            </select>
                         </div>
                     ` : ''}
 
@@ -81,14 +142,14 @@ const AuthController = {
                         <div class="imbs-login-label-row">
                             <label class="imbs-login-label">Email</label>
                         </div>
-                        <input type="email" id="auth-email" class="imbs-login-input" placeholder="you@company.com" value="${this.isSignUpMode ? '' : 'admin@apex.com'}" required />
+                        <input type="email" id="auth-email" class="imbs-login-input" placeholder="admin@apex.com" value="${this.isSignUpMode ? '' : 'admin@apex.com'}" required />
                     </div>
 
                     <div class="imbs-login-field">
                         <div class="imbs-login-label-row">
                             <label class="imbs-login-label">Password</label>
                             ${!this.isSignUpMode ? `
-                                <a class="imbs-login-forgot" onclick="App.showToast('Demo mode: default admin password is automatically accepted.', 'info')">Forgot?</a>
+                                <a class="imbs-login-forgot" onclick="App.showToast('Click any of the role buttons above to login immediately.', 'info')">Forgot?</a>
                             ` : ''}
                         </div>
                         <div class="imbs-login-input-wrap">
@@ -106,15 +167,6 @@ const AuthController = {
                     <button type="submit" id="auth-submit-btn" class="imbs-login-submit-btn">
                         ${this.isSignUpMode ? 'Create Account' : 'Continue'}
                     </button>
-
-                    ${!this.isSignUpMode ? `
-                        <button type="button" class="imbs-alt-signin-btn" onclick="AuthController.loginDemoAdmin()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L1 7"/>
-                            </svg>
-                            Email me a sign-in link instead
-                        </button>
-                    ` : ''}
                 </form>
 
                 <!-- Footer -->
@@ -145,6 +197,25 @@ const AuthController = {
         input.type = input.type === 'password' ? 'text' : 'password';
     },
 
+    async loginAsRole(email, password, roleCode) {
+        const errEl = document.getElementById('auth-error-msg');
+        if (errEl) errEl.style.display = 'none';
+
+        try {
+            const user = await window.SupabaseClient.signIn(email, password);
+            window.App.showToast(`Logged in as ${user.full_name} (${user.role})`, 'success');
+            this.render();
+            window.App.applyRBAC();
+            window.App.navigateTo('dashboard');
+        } catch (err) {
+            console.error("Login as role error", err);
+            if (errEl) {
+                errEl.innerText = err.message || 'Login failed.';
+                errEl.style.display = 'block';
+            }
+        }
+    },
+
     async handleSubmit(e) {
         e.preventDefault();
         const email = document.getElementById('auth-email')?.value.trim();
@@ -160,8 +231,9 @@ const AuthController = {
 
         try {
             if (this.isSignUpMode) {
-                const name = document.getElementById('auth-name')?.value.trim() || 'New User';
-                await window.SupabaseClient.signUp(email, pwd, name);
+                const name = document.getElementById('auth-name')?.value.trim() || 'New Staff';
+                const role = document.getElementById('auth-role')?.value || 'CASHIER';
+                await window.SupabaseClient.signUp(email, pwd, name, role, role);
                 App.showToast(`Account created for ${name}!`, 'success');
             } else {
                 await window.SupabaseClient.signIn(email, pwd);
@@ -169,6 +241,7 @@ const AuthController = {
             }
 
             this.render();
+            window.App.applyRBAC();
             App.navigateTo('dashboard');
         } catch (err) {
             if (errEl) {
@@ -179,27 +252,6 @@ const AuthController = {
                 submitBtn.disabled = false;
                 submitBtn.innerText = this.isSignUpMode ? 'Create Account' : 'Continue';
             }
-        }
-    },
-
-    async loginDemoAdmin() {
-        try {
-            await window.SupabaseClient.signIn('admin@apex.com', 'Admin@Password26');
-            App.showToast('Signed in as Administrator (Naresh S)', 'success');
-            this.render();
-            App.navigateTo('dashboard');
-        } catch (err) {
-            console.error("Demo login error", err);
-            // Fallback user
-            window.SupabaseClient.setCurrentUser({
-                id: "30000000-0000-0000-0000-000000000001",
-                email: "admin@apex.com",
-                full_name: "Naresh S",
-                job_title: "Lead Administrator",
-                role: "SUPER_ADMIN"
-            });
-            this.render();
-            App.navigateTo('dashboard');
         }
     },
 
@@ -215,10 +267,9 @@ const AuthController = {
 
         const nameEl = document.querySelector('.tblr-user-name');
         const titleEl = document.querySelector('.tblr-user-title');
-        if (nameEl) nameEl.innerText = user.full_name || 'Admin';
-        if (titleEl) titleEl.innerText = user.job_title || user.role || 'Administrator';
+        if (nameEl) nameEl.innerText = user.full_name || 'Staff User';
+        if (titleEl) titleEl.innerText = `${user.role || 'STAFF'} • ${user.job_title || ''}`;
     }
 };
 
 window.AuthController = AuthController;
-

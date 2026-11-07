@@ -181,9 +181,13 @@ const CInspectorView = {
             manager_override_approved: true
         };
 
-        // Execute batch calculation calls through the native C backend
+        // Execute batch calculation calls through the deterministic domain engine
         for (let i = 0; i < 20; i++) {
-            await api.quoteSale(dummyCart);
+            if (window.SupabaseClient && window.SupabaseClient.calculateQuotation) {
+                window.SupabaseClient.calculateQuotation(dummyCart);
+            } else if (window.api && window.api.quoteSale) {
+                await window.api.quoteSale(dummyCart);
+            }
         }
 
         const elapsed = (performance.now() - startTime).toFixed(2);

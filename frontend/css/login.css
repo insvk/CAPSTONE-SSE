@@ -332,3 +332,39 @@
     color: #64748b;
 }
 
+.imbs-role-pill-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+[data-theme="dark"] .imbs-role-pill-btn {
+    background: #111a24;
+    border-color: #233446;
+}
+
+.imbs-role-pill-btn:hover {
+    background: #f3f4f6;
+    border-color: #206bc4;
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .imbs-role-pill-btn:hover {
+    background: #1a2736;
+    border-color: #206bc4;
+}
+
+.imbs-role-pill-btn.active {
+    border-color: #206bc4;
+    box-shadow: 0 0 0 1px #206bc4;
+}
+
+

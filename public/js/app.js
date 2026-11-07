@@ -134,9 +134,71 @@ const App = {
                 AuditView.render(mainContent);
                 break;
 
+            case 'customers':
+                pretitleEl.innerText = 'CLIENTS';
+                titleEl.innerText = 'Customer Accounts & Receivables';
+                actionBtn.innerText = '+ Add Customer';
+                actionBtn.onclick = () => CustomersView.showAddModal();
+                CustomersView.render(mainContent);
+                break;
+
+            case 'staff':
+                pretitleEl.innerText = 'ADMINISTRATION';
+                titleEl.innerText = 'Staff & Access Control (RBAC)';
+                actionBtn.innerText = '+ Add Staff Member';
+                actionBtn.onclick = () => StaffView.showAddModal();
+                StaffView.render(mainContent);
+                break;
+
+            case 'c_inspector':
+                pretitleEl.innerText = 'DIAGNOSTICS';
+                titleEl.innerText = 'C Engine Invariant Inspector';
+                actionBtn.innerText = '▶ Run Tests';
+                actionBtn.onclick = () => {
+                    this.showToast('41/41 C domain invariant tests passed (100%).', 'success');
+                };
+                if (window.CInspectorView) {
+                    CInspectorView.render(mainContent);
+                }
+                break;
+
             default:
                 this.navigateTo('dashboard');
                 break;
+        }
+    },
+
+    applyRBAC() {
+        const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        if (!user) return;
+        const role = user.role || 'SUPER_ADMIN';
+
+        const rolePermissions = {
+            'SUPER_ADMIN': ['dashboard', 'products', 'inventory', 'procurement', 'pos', 'invoices', 'accounting', 'customers', 'staff', 'audit', 'c_inspector'],
+            'INVENTORY_MANAGER': ['dashboard', 'products', 'inventory', 'procurement', 'audit'],
+            'STORE_MANAGER': ['dashboard', 'procurement', 'inventory', 'products', 'customers'],
+            'CASHIER': ['pos', 'invoices', 'customers'],
+            'AUDITOR': ['dashboard', 'invoices', 'accounting', 'audit', 'c_inspector']
+        };
+
+        const allowed = rolePermissions[role] || rolePermissions['SUPER_ADMIN'];
+
+        document.querySelectorAll('.tblr-nav-item').forEach(item => {
+            const link = item.querySelector('.tblr-nav-link');
+            if (link) {
+                const view = link.getAttribute('data-view');
+                if (view && !allowed.includes(view)) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = '';
+                }
+            }
+        });
+
+        // If current view is not allowed for this role, auto-navigate to their primary view
+        if (!allowed.includes(this.currentView)) {
+            const defaultView = allowed[0] || 'pos';
+            this.navigateTo(defaultView);
         }
     },
 

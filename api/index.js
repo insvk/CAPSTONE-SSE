@@ -193,9 +193,14 @@ module.exports = async function handler(req, res) {
         return;
     }
 
-    // 2. Parse URL path
+    // 2. Parse URL path (handles direct calls, Vercel serverless rewrites, and path query params)
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    let pathname = url.pathname.replace(/^\/api\/v1\//, '').replace(/^\/api\//, '');
+    let rawPath = url.searchParams.get('path') || url.pathname;
+    let pathname = rawPath
+        .replace(/^\/api\/v1\//, '')
+        .replace(/^\/api\//, '')
+        .replace(/^index\.js\/?/, '')
+        .replace(/^\//, '');
     if (pathname.endsWith('/')) pathname = pathname.slice(0, -1);
 
     // 3. Check for Backend Proxy Mode
@@ -435,7 +440,34 @@ module.exports = async function handler(req, res) {
 
         // --- Customers ---
         if (pathname === 'customers') {
+            if (req.method === 'POST') {
+                const newCust = {
+                    id: "cust-" + Date.now(),
+                    code: body.code || ("CUST-" + Date.now().toString().slice(-4)),
+                    name: body.name || "New Customer",
+                    tax_identifier: body.tax_identifier || "27AAACA0000A1Z0",
+                    email: body.email || "",
+                    phone: body.phone || "",
+                    state_code: body.state_code || "27"
+                };
+                g_customers.unshift(newCust);
+                return res.status(201).json({ success: true, data: newCust });
+            }
             return res.status(200).json({ success: true, data: g_customers });
+        }
+
+        // --- Staff & RBAC Users ---
+        if (pathname === 'staff' || pathname === 'users') {
+            return res.status(200).json({
+                success: true,
+                data: [
+                    { id: "30000000-0000-0000-0000-000000000002", full_name: "Naresh S", email: "admin@apex.com", job_title: "Lead Administrator", role: "SUPER_ADMIN", is_active: true },
+                    { id: "30000000-0000-0000-0000-000000000003", full_name: "Vikram Mehta", email: "inventory@apex.com", job_title: "Warehouse Lead", role: "INVENTORY_MANAGER", is_active: true },
+                    { id: "30000000-0000-0000-0000-000000000004", full_name: "Pooja Reddy", email: "store@apex.com", job_title: "Procurement Lead", role: "STORE_MANAGER", is_active: true },
+                    { id: "30000000-0000-0000-0000-000000000005", full_name: "Aman Verma", email: "cashier@apex.com", job_title: "Front Cashier", role: "CASHIER", is_active: true },
+                    { id: "30000000-0000-0000-0000-000000000006", full_name: "Sneha Nair", email: "auditor@apex.com", job_title: "Compliance Officer", role: "AUDITOR", is_active: true }
+                ]
+            });
         }
 
         // --- Accounting ---

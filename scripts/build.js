@@ -25,8 +25,10 @@ const requiredFiles = [
     'frontend/js/views/inventory.js',
     'frontend/js/views/pos.js',
     'frontend/js/views/invoices.js',
+    'frontend/js/views/customers.js',
     'frontend/js/views/procurement.js',
     'frontend/js/views/accounting.js',
+    'frontend/js/views/staff.js',
     'frontend/js/views/audit.js',
     'api/index.js',
     'database/supabase_setup.sql'
