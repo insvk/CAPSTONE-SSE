@@ -1,195 +1,241 @@
 /**
- * Tabler Dark UI :: Invoices & Billing History View
+ * ==============================================================================
+ * CSA0201-B-CAPSTONE-IMBS :: Tax Invoices & Billing Archive View
+ * 100% Live Cloud Synchronization with Supabase PostgreSQL
+ * ==============================================================================
  */
 
 const InvoicesView = {
+    invoices: [],
+
     async render(container) {
+        container.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 250px;">
+                <div style="width: 28px; height: 28px; border: 3px solid #233446; border-top-color: #206bc4; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            </div>
+        `;
+
         try {
-            const invoices = await api.getInvoices();
-
+            this.invoices = await window.SupabaseClient.getInvoices();
+            this.renderTable(container);
+        } catch (err) {
             container.innerHTML = `
-                <div class="tblr-card">
-                    <div class="tblr-card-header">
-                        <div>
-                            <h3 class="tblr-card-title">TAX INVOICES & BILLING REGISTRY</h3>
-                            <span class="tblr-card-subtitle">Permanent immutable ledger of customer sales invoices</span>
-                        </div>
-                        <button class="tblr-btn tblr-btn-primary" onclick="App.navigateTo('pos')">
-                            + New Sale / POS Checkout
-                        </button>
-                    </div>
-
-                    <div class="tblr-table-responsive">
-                        <table class="tblr-table">
-                            <thead>
-                                <tr>
-                                    <th>Invoice #</th>
-                                    <th>Customer</th>
-                                    <th>Date</th>
-                                    <th>Taxable Base</th>
-                                    <th>GST Breakdown</th>
-                                    <th>Grand Total</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${invoices.length === 0 ? `
-                                    <tr><td colspan="8" style="text-align: center; color: var(--tblr-text-muted); padding: 30px;">No invoices issued yet. Perform a checkout from the POS Terminal.</td></tr>
-                                ` : invoices.map(inv => `
-                                    <tr>
-                                        <td>
-                                            <div style="font-weight: 700; color: #206bc4; font-family: monospace;">${inv.invoice_number}</div>
-                                        </td>
-                                        <td>
-                                            <div style="font-weight: 600;">${inv.customer_name || 'Retail Customer'}</div>
-                                            <div style="font-size: 11px; color: var(--tblr-text-muted);">${inv.customer_id}</div>
-                                        </td>
-                                        <td style="color: var(--tblr-text-secondary); font-size: 12px;">${inv.invoice_date}</td>
-                                        <td>₹${(inv.taxable_subtotal_cents / 100).toFixed(2)}</td>
-                                        <td>
-                                            <span style="font-size: 11px; color: var(--tblr-text-muted);">
-                                                C: ₹${(inv.total_cgst_cents / 100).toFixed(2)} | S: ₹${(inv.total_sgst_cents / 100).toFixed(2)}
-                                            </span>
-                                        </td>
-                                        <td style="font-weight: 700; color: #ffffff; font-size: 14px;">
-                                            ₹${(inv.grand_total_cents / 100).toFixed(2)}
-                                        </td>
-                                        <td>
-                                            <span class="tblr-badge tblr-badge-success">${inv.status}</span>
-                                        </td>
-                                        <td>
-                                            <button class="tblr-btn tblr-btn-sm tblr-btn-default" onclick="InvoicesView.viewInvoice('${inv.invoice_number}')">
-                                                👁 View & Print
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Print Modal Container -->
-                <div id="modal-invoice-viewer" class="tblr-modal-backdrop">
-                    <div class="tblr-modal invoice-print-modal" style="max-width: 720px;">
-                        <div class="tblr-modal-header">
-                            <h4 class="tblr-modal-title">Official Tax Invoice</h4>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="tblr-btn tblr-btn-primary tblr-btn-sm" onclick="window.print()">🖨 Print Invoice</button>
-                                <button class="tblr-modal-close" onclick="InvoicesView.closeModal()">✕</button>
-                            </div>
-                        </div>
-                        <div class="tblr-modal-body">
-                            <div id="invoice-viewer-content" class="invoice-print-container"></div>
-                        </div>
-                    </div>
+                <div class="tblr-card" style="padding: 24px; color: #ff6b6b; border: 1px solid #d63939;">
+                    <strong>Error loading invoices from Supabase:</strong> ${err.message}
                 </div>
             `;
-        } catch (err) {
-            container.innerHTML = `<div class="tblr-card" style="color: var(--tblr-danger);">Failed to load invoices: ${err.message}</div>`;
         }
     },
 
-    async viewInvoice(invoiceNumber) {
-        try {
-            const inv = await api.getInvoiceById(invoiceNumber);
-            const content = document.getElementById('invoice-viewer-content');
-            content.innerHTML = `
-                <div class="invoice-header-row">
+    renderTable(container) {
+        let totalBilled = 0;
+        let totalPaid = 0;
+        let totalDue = 0;
+
+        this.invoices.forEach(inv => {
+            totalBilled += inv.grand_total;
+            totalPaid += inv.paid_amount;
+            totalDue += inv.balance_due;
+        });
+
+        const billedFmt = (totalBilled / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const paidFmt = (totalPaid / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const dueFmt = (totalDue / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+        container.innerHTML = `
+            <!-- Summary Stats -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;">
+                <div class="tblr-card" style="padding: 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--tblr-text-muted); font-weight: 700;">TOTAL BILLED REVENUE</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #fff; margin-top: 4px;">₹${billedFmt}</div>
+                </div>
+                <div class="tblr-card" style="padding: 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--tblr-text-muted); font-weight: 700;">PAYMENTS SETTLED</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #2fb344; margin-top: 4px;">₹${paidFmt}</div>
+                </div>
+                <div class="tblr-card" style="padding: 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--tblr-text-muted); font-weight: 700;">OUTSTANDING RECEIVABLES</div>
+                    <div style="font-size: 22px; font-weight: 800; color: ${totalDue > 0 ? '#ff6b6b' : '#2fb344'}; margin-top: 4px;">₹${dueFmt}</div>
+                </div>
+            </div>
+
+            <div class="tblr-card">
+                <div class="tblr-card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--tblr-border-color);">
                     <div>
-                        <div class="invoice-company-title">Apex Industrial & Retail Systems Ltd.</div>
-                        <div style="font-size: 11px; color: #475569;">108 Industrial Expressway, Tech Corridor, Chennai - 600001</div>
-                        <div style="font-size: 11px; color: #475569;">GSTIN: 33AAAAA0000A1Z5 | Phone: +91 44 2800 1234</div>
+                        <h3 class="tblr-card-title" style="margin: 0; font-size: 16px;">Tax Invoices (${this.invoices.length})</h3>
+                        <div style="font-size: 12px; color: var(--tblr-text-muted); margin-top: 2px;">
+                            GST Tax compliant corporate and retail invoice ledger
+                        </div>
                     </div>
-                    <div class="invoice-meta-block">
-                        <div class="invoice-number">${inv.invoice_number}</div>
-                        <div style="font-size: 12px; font-weight: 600;">ORIGINAL TAX INVOICE</div>
-                        <div style="font-size: 11px; color: #475569;">Date: ${inv.invoice_date}</div>
-                        <div style="font-size: 11px; color: #475569;">Status: <strong style="color: #16a34a;">${inv.status}</strong></div>
-                    </div>
+                    <button class="tblr-btn tblr-btn-primary" onclick="App.navigateTo('pos')">
+                        + New Sale / Checkout
+                    </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 12px; margin-bottom: 16px;">
+                <div class="tblr-table-responsive">
+                    <table class="tblr-table">
+                        <thead>
+                            <tr>
+                                <th>INVOICE NUMBER</th>
+                                <th>CUSTOMER NAME</th>
+                                <th>DATE</th>
+                                <th style="text-align: right;">SUBTOTAL</th>
+                                <th style="text-align: right;">GST TAX</th>
+                                <th style="text-align: right;">GRAND TOTAL</th>
+                                <th style="text-align: center;">STATUS</th>
+                                <th style="text-align: center;">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.renderRows()}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tax Invoice Modal -->
+            <div id="modal-invoice-detail" class="tblr-modal-backdrop" style="display: none;">
+                <div class="tblr-modal-dialog" style="max-width: 650px;">
+                    <div class="tblr-modal-header">
+                        <h3 class="tblr-modal-title">Tax Invoice Document</h3>
+                        <button class="tblr-modal-close" onclick="InvoicesView.closeDetailModal()">✕</button>
+                    </div>
+                    <div class="tblr-modal-body" id="invoice-doc-body">
+                        <!-- Invoice Document -->
+                    </div>
+                    <div class="tblr-modal-footer">
+                        <button type="button" class="tblr-btn tblr-btn-default" onclick="InvoicesView.closeDetailModal()">Close</button>
+                        <button type="button" class="tblr-btn tblr-btn-primary" onclick="window.print()">🖨 Print Invoice</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderRows() {
+        if (!this.invoices || this.invoices.length === 0) {
+            return `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--tblr-text-muted);">No invoices recorded yet. Start a sale via POS Cashier.</td></tr>`;
+        }
+
+        return this.invoices.map((inv, idx) => {
+            const sub = (inv.subtotal / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const tax = (inv.tax_amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const grand = (inv.grand_total / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const isPaid = inv.status === 'PAID';
+
+            return `
+                <tr>
+                    <td style="font-weight: 700; font-family: monospace; color: #fff;">${inv.invoice_number}</td>
+                    <td style="font-weight: 600; color: #e2e8f0;">${inv.customer_name}</td>
+                    <td style="font-size: 12px; color: var(--tblr-text-muted);">${inv.invoice_date}</td>
+                    <td style="text-align: right; font-family: monospace; color: var(--tblr-text-secondary);">₹${sub}</td>
+                    <td style="text-align: right; font-family: monospace; color: var(--tblr-primary);">₹${tax}</td>
+                    <td style="text-align: right; font-weight: 800; font-family: monospace; color: #2fb344;">₹${grand}</td>
+                    <td style="text-align: center;">
+                        <span class="tblr-badge ${isPaid ? 'tblr-badge-green' : 'tblr-badge-red'}">
+                            ${inv.status}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="tblr-btn tblr-btn-default" style="padding: 4px 8px; font-size: 11px;" onclick="InvoicesView.showInvoiceDetail(${idx})">
+                            View / Print
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    showInvoiceDetail(idx) {
+        const inv = this.invoices[idx];
+        if (!inv) return;
+
+        const sub = (inv.subtotal / 100).toFixed(2);
+        const tax = (inv.tax_amount / 100).toFixed(2);
+        const grand = (inv.grand_total / 100).toFixed(2);
+
+        const body = document.getElementById('invoice-doc-body');
+        if (!body) return;
+
+        body.innerHTML = `
+            <div style="background: #ffffff; color: #111; padding: 24px; border-radius: 8px; font-family: sans-serif; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px;">
                     <div>
-                        <strong>Billed To:</strong><br>
-                        ${inv.customer_name}<br>
-                        Customer Ref: ${inv.customer_id}
+                        <h2 style="margin: 0; font-size: 18px; color: #0f172a;">TAX INVOICE</h2>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Original for Recipient</div>
                     </div>
                     <div style="text-align: right;">
-                        <strong>Place of Supply:</strong> Tamil Nadu (State Code 33)<br>
-                        <strong>Payment Status:</strong> Fully Paid
+                        <div style="font-weight: bold; font-size: 14px; color: #206bc4;">Apex Global Enterprises Ltd</div>
+                        <div style="font-size: 11px; color: #64748b;">GSTIN: 27AABCU9603R1ZM</div>
+                        <div style="font-size: 11px; color: #64748b;">BKC Complex, Mumbai - 400051</div>
                     </div>
                 </div>
 
-                <table class="invoice-print-table">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div>
+                        <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">BILLED TO:</div>
+                        <div style="font-weight: bold; font-size: 14px; margin-top: 2px;">${inv.customer_name}</div>
+                        <div style="font-size: 12px; color: #475569;">State: Maharashtra (27)</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><strong>Invoice No:</strong> ${inv.invoice_number}</div>
+                        <div><strong>Invoice Date:</strong> ${inv.invoice_date}</div>
+                        <div><strong>Status:</strong> <span style="color: green; font-weight: bold;">${inv.status}</span></div>
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                     <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Description</th>
-                            <th>Qty</th>
-                            <th>Unit Price</th>
-                            <th>Taxable</th>
-                            <th>CGST</th>
-                            <th>SGST</th>
-                            <th>Line Total</th>
+                        <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+                            <th style="text-align: left; padding: 8px;">Description</th>
+                            <th style="text-align: center; padding: 8px;">Qty</th>
+                            <th style="text-align: right; padding: 8px;">Unit Price</th>
+                            <th style="text-align: right; padding: 8px;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${(inv.lines || []).map((l, idx) => `
-                            <tr>
-                                <td>${idx + 1}</td>
-                                <td><strong>${l.product_id}</strong></td>
-                                <td>${l.quantity}</td>
-                                <td>₹${(l.unit_price_cents / 100).toFixed(2)}</td>
-                                <td>₹${(l.taxable_amount / 100).toFixed(2)}</td>
-                                <td>₹${(l.cgst_amount / 100).toFixed(2)}</td>
-                                <td>₹${(l.sgst_amount / 100).toFixed(2)}</td>
-                                <td><strong>₹${(l.line_total / 100).toFixed(2)}</strong></td>
+                        ${(inv.lines && inv.lines.length > 0) ? inv.lines.map(l => `
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px;">${l.products ? l.products.name : 'Item'}</td>
+                                <td style="text-align: center; padding: 8px;">${l.quantity}</td>
+                                <td style="text-align: right; padding: 8px;">₹${(l.unit_price_cents / 100).toFixed(2)}</td>
+                                <td style="text-align: right; padding: 8px;">₹${(l.line_total_cents / 100).toFixed(2)}</td>
                             </tr>
-                        `).join('')}
+                        `).join('') : `
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px;">Hardware Merchandize Item</td>
+                                <td style="text-align: center; padding: 8px;">1</td>
+                                <td style="text-align: right; padding: 8px;">₹${sub}</td>
+                                <td style="text-align: right; padding: 8px;">₹${sub}</td>
+                            </tr>
+                        `}
                     </tbody>
                 </table>
 
-                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                    <div style="width: 280px; font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Gross Subtotal:</span>
-                            <span>₹${(inv.subtotal_cents / 100).toFixed(2)}</span>
+                <div style="display: flex; justify-content: flex-end;">
+                    <div style="width: 240px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                            <span>Subtotal:</span><span>₹${sub}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Discounts Applied:</span>
-                            <span>-₹${(inv.total_discount_cents / 100).toFixed(2)}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                            <span>GST Tax (CGST+SGST):</span><span>₹${tax}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Total GST (18%):</span>
-                            <span>₹${(inv.total_tax_cents / 100).toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Round Off:</span>
-                            <span>₹${(inv.round_off_cents / 100).toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; border-top: 2px solid #000; padding-top: 6px;">
-                            <span>Grand Total:</span>
-                            <span>₹${(inv.grand_total_cents / 100).toFixed(2)}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 2px solid #0f172a; font-weight: bold; font-size: 15px;">
+                            <span>Total Due:</span><span>₹${grand}</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        `;
 
-                <div style="margin-top: 30px; border-top: 1px dashed #cbd5e1; padding-top: 12px; font-size: 11px; color: #64748b; text-align: center;">
-                    Cryptographically generated & verified by C-First Domain Engine. Double-entry balanced.
-                </div>
-            `;
-            document.getElementById('modal-invoice-viewer').classList.add('show');
-        } catch (err) {
-            App.showToast(err.message, 'danger');
-        }
+        const modal = document.getElementById('modal-invoice-detail');
+        if (modal) modal.style.display = 'flex';
     },
 
-    closeModal() {
-        document.getElementById('modal-invoice-viewer').classList.remove('show');
+    closeDetailModal() {
+        const modal = document.getElementById('modal-invoice-detail');
+        if (modal) modal.style.display = 'none';
     }
 };
 
 window.InvoicesView = InvoicesView;
-

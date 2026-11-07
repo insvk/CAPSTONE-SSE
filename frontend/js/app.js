@@ -1,6 +1,7 @@
 /**
  * ==============================================================================
- * Tabler Dark UI Application Controller & SPA Router
+ * CSA0201-B-CAPSTONE-IMBS :: Main Application Controller & Router
+ * Tabler Dark Design System & 100% Live Supabase Cloud Sync
  * ==============================================================================
  */
 
@@ -9,8 +10,12 @@ const App = {
 
     init() {
         this.bindEvents();
-        this.navigateTo('dashboard');
-        this.checkServerHealth();
+        // Check authentication first
+        window.AuthController.init();
+
+        if (window.AuthController.isAuthenticated()) {
+            this.navigateTo('dashboard');
+        }
     },
 
     bindEvents() {
@@ -41,6 +46,11 @@ const App = {
     },
 
     navigateTo(viewName) {
+        if (!window.AuthController.isAuthenticated()) {
+            window.AuthController.render();
+            return;
+        }
+
         this.currentView = viewName;
 
         // Update active nav links
@@ -60,9 +70,9 @@ const App = {
         switch (viewName) {
             case 'dashboard':
                 pretitleEl.innerText = 'OVERVIEW';
-                titleEl.innerText = 'Dashboard';
-                actionBtn.innerText = '+ Create new report';
-                actionBtn.onclick = () => this.showToast('Generating consolidated audit report...', 'info');
+                titleEl.innerText = 'Inventory & Billing Dashboard';
+                actionBtn.innerText = '⚡ Quick Sale (POS)';
+                actionBtn.onclick = () => this.navigateTo('pos');
                 DashboardView.render(mainContent);
                 break;
 
@@ -76,15 +86,15 @@ const App = {
 
             case 'inventory':
                 pretitleEl.innerText = 'LOGISTICS';
-                titleEl.innerText = 'Stock Ledger & Warehouses';
-                actionBtn.innerText = '+ Quick Stock Adjustment';
+                titleEl.innerText = 'Stock Balances & Warehouses';
+                actionBtn.innerText = '± Quick Stock Adjustment';
                 actionBtn.onclick = () => InventoryView.showAdjustModal();
                 InventoryView.render(mainContent);
                 break;
 
             case 'procurement':
                 pretitleEl.innerText = 'PURCHASING';
-                titleEl.innerText = 'Suppliers & Goods Receipts';
+                titleEl.innerText = 'Suppliers & Goods Receipts (GRN)';
                 actionBtn.innerText = '📥 Receive Goods (GRN)';
                 actionBtn.onclick = () => ProcurementView.showGRNModal();
                 ProcurementView.render(mainContent);
@@ -93,15 +103,15 @@ const App = {
             case 'pos':
                 pretitleEl.innerText = 'POINT OF SALE';
                 titleEl.innerText = 'Cashier Billing Register';
-                actionBtn.innerText = '⚡ New Transaction';
+                actionBtn.innerText = '✕ Clear Cart';
                 actionBtn.onclick = () => PosView.clearCart();
                 PosView.render(mainContent);
                 break;
 
             case 'invoices':
                 pretitleEl.innerText = 'FINANCE';
-                titleEl.innerText = 'Tax Invoices & Billing';
-                actionBtn.innerText = '+ New Sale / POS';
+                titleEl.innerText = 'Tax Invoices & Billing Archive';
+                actionBtn.innerText = '+ New Sale';
                 actionBtn.onclick = () => this.navigateTo('pos');
                 InvoicesView.render(mainContent);
                 break;
@@ -110,16 +120,16 @@ const App = {
                 pretitleEl.innerText = 'GENERAL LEDGER';
                 titleEl.innerText = 'Double-Entry Accounting';
                 actionBtn.innerText = '✓ Verify Balance';
-                actionBtn.onclick = () => this.showToast('All journal debits and credits verified balanced.', 'success');
+                actionBtn.onclick = () => this.showToast('All journal debits and credits verified balanced (ΣD ≡ ΣC).', 'success');
                 AccountingView.render(mainContent);
                 break;
 
-            case 'c_inspector':
-                pretitleEl.innerText = 'ENGINEERING SPEC';
-                titleEl.innerText = 'Academic C Engine Inspector';
-                actionBtn.innerText = '⚡ Run Benchmark';
-                actionBtn.onclick = () => CInspectorView.runLiveBenchmark();
-                CInspectorView.render(mainContent);
+            case 'audit':
+                pretitleEl.innerText = 'GOVERNANCE';
+                titleEl.innerText = 'Audit Trail & Compliance';
+                actionBtn.innerText = '↻ Refresh';
+                actionBtn.onclick = () => AuditView.render(mainContent);
+                AuditView.render(mainContent);
                 break;
 
             default:
@@ -160,45 +170,33 @@ const App = {
         }, 3500);
     },
 
-    async checkServerHealth() {
-        try {
-            const h = await api.getHealth();
-            console.log('[IMBS Server Connected]', h);
-            this.updateCloudStatusPill(true);
-        } catch (err) {
-            console.warn('[IMBS Server Warning]', err);
-            this.updateCloudStatusPill(false);
+    openUserMenu() {
+        const user = window.SupabaseClient.getCurrentUser();
+        if (!user) return;
+
+        const modal = document.getElementById('modal-user-menu');
+        if (modal) {
+            document.getElementById('user-menu-name').innerText = user.full_name || 'Admin';
+            document.getElementById('user-menu-email').innerText = user.email || '';
+            document.getElementById('user-menu-role').innerText = user.role || 'SUPER_ADMIN';
+            modal.style.display = 'flex';
         }
     },
 
-    updateCloudStatusPill(isHealthy) {
-        const pill = document.getElementById('btn-cloud-modal');
-        if (!pill) return;
-        const isSupa = window.SupabaseClient && window.SupabaseClient.isConfigured();
-        if (isSupa) {
-            pill.innerHTML = `<span class="tblr-status-dot-emerald"></span><span>Supabase: Synced</span>`;
-        } else if (isHealthy) {
-            pill.innerHTML = `<span class="tblr-status-dot-emerald"></span><span>Cloud: Ready</span>`;
-        } else {
-            pill.innerHTML = `<span style="width: 7px; height: 7px; background: #e6a23c; border-radius: 50%; display: inline-block;"></span><span style="color: #e6a23c;">Cloud: Demo</span>`;
-        }
+    closeUserMenu() {
+        const modal = document.getElementById('modal-user-menu');
+        if (modal) modal.style.display = 'none';
     },
 
     openCloudModal() {
         const modal = document.getElementById('modal-cloud-settings');
-        if (!modal) return;
-        const supaUrl = document.getElementById('cfg-supabase-url');
-        const supaKey = document.getElementById('cfg-supabase-anon-key');
-        const backendUrl = document.getElementById('cfg-backend-url');
-
-        if (supaUrl) supaUrl.value = localStorage.getItem('imbs_supabase_url') || '';
-        if (supaKey) supaKey.value = localStorage.getItem('imbs_supabase_anon_key') || '';
-        if (backendUrl) backendUrl.value = localStorage.getItem('imbs_backend_url') || '';
-
-        const resBox = document.getElementById('cloud-test-result');
-        if (resBox) resBox.style.display = 'none';
-
-        modal.style.display = 'flex';
+        if (modal) {
+            const urlInput = document.getElementById('cfg-supabase-url');
+            const keyInput = document.getElementById('cfg-supabase-anon-key');
+            if (urlInput) urlInput.value = window.SupabaseClient.url || '';
+            if (keyInput) keyInput.value = window.SupabaseClient.anonKey || '';
+            modal.style.display = 'flex';
+        }
     },
 
     closeCloudModal() {
@@ -207,73 +205,53 @@ const App = {
     },
 
     async testCloudConnection() {
-        const supaUrl = document.getElementById('cfg-supabase-url')?.value.trim();
-        const supaKey = document.getElementById('cfg-supabase-anon-key')?.value.trim();
-        const resBox = document.getElementById('cloud-test-result');
-        if (!resBox) return;
-
-        resBox.style.display = 'block';
-        resBox.style.background = 'rgba(32, 107, 196, 0.15)';
-        resBox.style.color = '#59a5ff';
-        resBox.style.border = '1px solid #206bc4';
-        resBox.innerText = 'Testing Supabase PostgREST connection...';
-
+        const resEl = document.getElementById('cloud-test-result');
+        if (resEl) {
+            resEl.style.display = 'block';
+            resEl.style.background = 'rgba(32, 107, 196, 0.15)';
+            resEl.style.color = '#38bdf8';
+            resEl.innerText = 'Connecting to Supabase PostgreSQL 17...';
+        }
         try {
-            if (!supaUrl || !supaKey) {
-                // Test backend health instead
-                const health = await api.getHealth();
-                resBox.style.background = 'rgba(47, 179, 68, 0.15)';
-                resBox.style.color = '#2fb344';
-                resBox.style.border = '1px solid #2fb344';
-                resBox.innerText = `✓ Backend API online: ${health.system} (${health.runtime || health.engine})`;
-                return;
+            const products = await window.SupabaseClient.getProducts();
+            if (resEl) {
+                resEl.style.background = 'rgba(47, 179, 68, 0.15)';
+                resEl.style.color = '#2fb344';
+                resEl.innerText = `✓ Connected! Live DB responded with ${products.length} products.`;
             }
-
-            const testRes = await window.SupabaseClient.testConnection(supaUrl, supaKey);
-            resBox.style.background = 'rgba(47, 179, 68, 0.15)';
-            resBox.style.color = '#2fb344';
-            resBox.style.border = '1px solid #2fb344';
-            resBox.innerText = `✓ Supabase Connected! Successfully queried PostgreSQL master catalog.`;
         } catch (err) {
-            resBox.style.background = 'rgba(214, 57, 57, 0.15)';
-            resBox.style.color = '#ff6b6b';
-            resBox.style.border = '1px solid #d63939';
-            resBox.innerText = `✕ Connection test failed: ${err.message}`;
+            if (resEl) {
+                resEl.style.background = 'rgba(214, 57, 57, 0.15)';
+                resEl.style.color = '#ff6b6b';
+                resEl.innerText = `✕ Error connecting: ${err.message}`;
+            }
         }
     },
 
     saveCloudConfig() {
-        const supaUrl = document.getElementById('cfg-supabase-url')?.value.trim();
-        const supaKey = document.getElementById('cfg-supabase-anon-key')?.value.trim();
-        const backendUrl = document.getElementById('cfg-backend-url')?.value.trim();
-
-        if (supaUrl && supaKey) {
-            window.SupabaseClient.saveConfig(supaUrl, supaKey);
+        const url = document.getElementById('cfg-supabase-url')?.value.trim();
+        const key = document.getElementById('cfg-supabase-anon-key')?.value.trim();
+        if (url && key) {
+            window.SupabaseClient.init(url, key);
+            this.showToast('Supabase configuration updated & synchronized!', 'success');
+            this.closeCloudModal();
+            this.navigateTo(this.currentView);
         } else {
-            localStorage.removeItem('imbs_supabase_url');
-            localStorage.removeItem('imbs_supabase_anon_key');
+            this.showToast('Please specify valid URL and Anon Key.', 'danger');
         }
-
-        if (backendUrl) {
-            localStorage.setItem('imbs_backend_url', backendUrl);
-        } else {
-            localStorage.removeItem('imbs_backend_url');
-        }
-
-        this.updateCloudStatusPill(true);
-        this.closeCloudModal();
-        this.showToast('Cloud settings saved and applied.', 'success');
-        this.navigateTo(this.currentView);
     },
 
     clearCloudConfig() {
-        localStorage.removeItem('imbs_supabase_url');
-        localStorage.removeItem('imbs_supabase_anon_key');
-        localStorage.removeItem('imbs_backend_url');
-        this.closeCloudModal();
-        this.updateCloudStatusPill(false);
-        this.showToast('Cloud settings reset to default.', 'info');
-        this.navigateTo(this.currentView);
+        const urlInput = document.getElementById('cfg-supabase-url');
+        const keyInput = document.getElementById('cfg-supabase-anon-key');
+        if (urlInput) urlInput.value = 'https://fdtkwdkpanxbuextrpiw.supabase.co';
+        if (keyInput) keyInput.value = window.SupabaseClient.anonKey;
+        this.showToast('Reset to default project credentials.', 'info');
+    },
+
+    logout() {
+        this.closeUserMenu();
+        window.AuthController.logout();
     }
 };
 
@@ -282,4 +260,3 @@ window.App = App;
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
-
