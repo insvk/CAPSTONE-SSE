@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * CSA0201-B-CAPSTONE-IMBS :: Products & SKU Master Catalog View
- * 100% Live Cloud Synchronization with Supabase PostgreSQL
+ * Shadcn UI Kit Dark Theme & 100% Live Supabase PostgreSQL Integration
  * ==============================================================================
  */
 
@@ -10,9 +10,10 @@ const ProductsView = {
 
     async render(container) {
         container.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; min-height: 250px;">
-                <div style="width: 28px; height: 28px; border: 3px solid #233446; border-top-color: #206bc4; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+                <div style="width: 28px; height: 28px; border: 2px solid #27272a; border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
             </div>
+            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
         `;
 
         try {
@@ -20,7 +21,7 @@ const ProductsView = {
             this.renderTable(container);
         } catch (err) {
             container.innerHTML = `
-                <div class="tblr-card" style="padding: 24px; color: #ff6b6b; border: 1px solid #d63939;">
+                <div class="shadcn-card" style="border-color: #ef4444; color: #ef4444; padding: 24px;">
                     <strong>Error loading products from Supabase:</strong> ${err.message}
                 </div>
             `;
@@ -29,24 +30,24 @@ const ProductsView = {
 
     renderTable(container) {
         container.innerHTML = `
-            <div class="tblr-card">
-                <div class="tblr-card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--tblr-border-color);">
+            <div class="shadcn-table-wrap">
+                <div class="shadcn-table-header">
                     <div>
-                        <h3 class="tblr-card-title" style="margin: 0; font-size: 16px;">Product Catalog (${this.productsList.length} items)</h3>
-                        <div style="font-size: 12px; color: var(--tblr-text-muted); margin-top: 2px;">
+                        <h2 style="font-size: 16px; font-weight: 700; color: #ffffff; margin: 0;">Product Catalog (${this.productsList.length} items)</h2>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                             Master SKU registry with HSN compliance and tax classifications
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="prod-search-input" class="tblr-form-control" placeholder="Search by SKU or Name..." style="width: 220px; height: 34px; font-size: 13px;" oninput="ProductsView.filterProducts(this.value)" />
-                        <button class="tblr-btn tblr-btn-primary" onclick="ProductsView.showAddModal()">
+                        <input type="text" id="prod-search-input" class="shadcn-input" placeholder="Search by SKU or Name..." style="width: 240px; height: 34px;" oninput="ProductsView.filterProducts(this.value)" />
+                        <button class="shadcn-btn-primary" onclick="ProductsView.showAddModal()">
                             + Add New SKU
                         </button>
                     </div>
                 </div>
 
-                <div class="tblr-table-responsive">
-                    <table class="tblr-table" id="products-table">
+                <div style="overflow-x: auto;">
+                    <table class="shadcn-table" id="products-table">
                         <thead>
                             <tr>
                                 <th>SKU / BARCODE</th>
@@ -68,41 +69,41 @@ const ProductsView = {
 
             <!-- Add Product Modal -->
             <div id="modal-add-product" class="tblr-modal-backdrop" style="display: none;">
-                <div class="tblr-modal-dialog" style="max-width: 550px;">
-                    <div class="tblr-modal-header">
-                        <h3 class="tblr-modal-title">Create New Master Product</h3>
+                <div class="tblr-modal-dialog" style="max-width: 540px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+                    <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                        <h3 class="tblr-modal-title" style="color: #ffffff; font-size: 16px;">Create New Master SKU Product</h3>
                         <button class="tblr-modal-close" onclick="ProductsView.hideAddModal()">✕</button>
                     </div>
                     <form id="form-create-product" onsubmit="ProductsView.handleCreateProduct(event)">
-                        <div class="tblr-modal-body">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">SKU Code *</label>
-                                    <input type="text" id="new-prod-sku" class="tblr-form-control" placeholder="e.g. PROD-DELL-U27" required />
+                        <div class="tblr-modal-body" style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">SKU Code *</label>
+                                    <input type="text" id="new-prod-sku" class="shadcn-input" placeholder="e.g. PROD-DELL-U27" required />
                                 </div>
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Barcode / EAN-13</label>
-                                    <input type="text" id="new-prod-barcode" class="tblr-form-control" placeholder="e.g. 8901234567895" />
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Barcode / EAN-13</label>
+                                    <input type="text" id="new-prod-barcode" class="shadcn-input" placeholder="e.g. 8901234567895" />
                                 </div>
                             </div>
 
-                            <div class="tblr-form-group">
-                                <label class="tblr-form-label">Product Name *</label>
-                                <input type="text" id="new-prod-name" class="tblr-form-control" placeholder="e.g. Dell UltraSharp 27 Monitor" required />
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Product Name *</label>
+                                <input type="text" id="new-prod-name" class="shadcn-input" placeholder="e.g. Dell UltraSharp 27 Monitor" required />
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Category</label>
-                                    <select id="new-prod-category" class="tblr-form-control">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Category</label>
+                                    <select id="new-prod-category" class="shadcn-select">
                                         <option value="50000000-0000-0000-0000-000000000001">Electronics & Peripherals</option>
                                         <option value="50000000-0000-0000-0000-000000000002">Monitors & Displays</option>
                                         <option value="50000000-0000-0000-0000-000000000003">Ergonomic Furniture</option>
                                     </select>
                                 </div>
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Unit of Measure (UOM)</label>
-                                    <select id="new-prod-uom" class="tblr-form-control">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Unit of Measure (UOM)</label>
+                                    <select id="new-prod-uom" class="shadcn-select">
                                         <option value="PCS">PCS (Pieces)</option>
                                         <option value="BOX">BOX (12 Units)</option>
                                         <option value="KG">KG (Kilograms)</option>
@@ -111,31 +112,35 @@ const ProductsView = {
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Purchase Cost (₹) *</label>
-                                    <input type="number" step="0.01" id="new-prod-purchase" class="tblr-form-control" placeholder="6500.00" required />
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Purchase Cost (₹) *</label>
+                                    <input type="number" step="0.01" id="new-prod-purchase" class="shadcn-input" placeholder="6500.00" required />
                                 </div>
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Selling Price (₹) *</label>
-                                    <input type="number" step="0.01" id="new-prod-selling" class="tblr-form-control" placeholder="8999.00" required />
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Selling Price (₹) *</label>
+                                    <input type="number" step="0.01" id="new-prod-selling" class="shadcn-input" placeholder="8999.00" required />
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Initial Stock (Units)</label>
-                                    <input type="number" id="new-prod-stock" class="tblr-form-control" value="25" min="0" />
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">GST Tax Category</label>
+                                    <select id="new-prod-tax" class="shadcn-select">
+                                        <option value="60000000-0000-0000-0000-000000000001">Standard GST 18% (Hardware)</option>
+                                        <option value="60000000-0000-0000-0000-000000000002">Reduced GST 12% (Furniture)</option>
+                                        <option value="60000000-0000-0000-0000-000000000003">Low GST 5% (Essentials)</option>
+                                    </select>
                                 </div>
-                                <div class="tblr-form-group">
-                                    <label class="tblr-form-label">Reorder Threshold</label>
-                                    <input type="number" id="new-prod-reorder" class="tblr-form-control" value="10" min="1" />
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Initial Inward Stock Qty</label>
+                                    <input type="number" id="new-prod-stock" class="shadcn-input" placeholder="50" value="25" />
                                 </div>
                             </div>
                         </div>
-                        <div class="tblr-modal-footer">
-                            <button type="button" class="tblr-btn tblr-btn-default" onclick="ProductsView.hideAddModal()">Cancel</button>
-                            <button type="submit" id="btn-save-product" class="tblr-btn tblr-btn-primary">Save Product</button>
+                        <div class="tblr-modal-footer" style="padding: 16px 20px; border-top: 1px solid #222226; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="shadcn-btn-secondary" onclick="ProductsView.hideAddModal()">Cancel</button>
+                            <button type="submit" class="shadcn-btn-primary">Save to Live Database</button>
                         </div>
                     </form>
                 </div>
@@ -145,7 +150,7 @@ const ProductsView = {
 
     renderRows(products) {
         if (!products || products.length === 0) {
-            return `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--tblr-text-muted);">No products found in database. Click '+ Add New SKU' above.</td></tr>`;
+            return `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">No products found in live database. Click '+ Add New SKU' above to register fresh items.</td></tr>`;
         }
 
         return products.map(p => {
@@ -157,19 +162,19 @@ const ProductsView = {
                 <tr>
                     <td>
                         <div style="font-weight: 700; color: #fff;">${p.sku}</div>
-                        <div style="font-size: 11px; color: var(--tblr-text-muted);">${p.barcode || 'NO BARCODE'}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">${p.barcode || 'NO BARCODE'}</div>
                     </td>
                     <td>
-                        <div style="font-weight: 600; color: #e2e8f0;">${p.name}</div>
-                        <div style="font-size: 11px; color: var(--tblr-primary);">${p.category}</div>
+                        <div style="font-weight: 600; color: #e4e4e7;">${p.name}</div>
+                        <div style="font-size: 11px; color: #60a5fa;">${p.category}</div>
                     </td>
-                    <td><span class="tblr-badge tblr-badge-blue">${p.base_uom}</span></td>
-                    <td style="text-align: right; font-family: monospace; color: var(--tblr-text-secondary);">₹${purchase}</td>
-                    <td style="text-align: right; font-weight: 700; font-family: monospace; color: #2fb344;">₹${selling}</td>
-                    <td style="text-align: center;"><span class="tblr-badge tblr-badge-green">${taxPct}% GST</span></td>
-                    <td style="text-align: center; color: var(--tblr-text-muted);">${p.reorder_point}</td>
+                    <td><span class="shadcn-badge blue">${p.base_uom}</span></td>
+                    <td style="text-align: right; font-family: var(--font-mono); color: var(--text-secondary);">₹${purchase}</td>
+                    <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: var(--accent-green);">₹${selling}</td>
+                    <td style="text-align: center;"><span class="shadcn-badge green">${taxPct}% GST</span></td>
+                    <td style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">${p.reorder_point}</td>
                     <td style="text-align: center;">
-                        <button class="tblr-btn tblr-btn-default" style="padding: 4px 8px; font-size: 11px; color: #ff6b6b;" onclick="ProductsView.deleteProduct('${p.id}', '${p.name}')">
+                        <button class="shadcn-btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" onclick="ProductsView.deleteProduct('${p.id}', '${p.name}')">
                             Delete
                         </button>
                     </td>
@@ -201,54 +206,47 @@ const ProductsView = {
 
     async handleCreateProduct(e) {
         e.preventDefault();
-        const saveBtn = document.getElementById('btn-save-product');
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.innerText = 'Creating in Supabase...';
-        }
-
-        const sku = document.getElementById('new-prod-sku')?.value.trim();
-        const barcode = document.getElementById('new-prod-barcode')?.value.trim();
-        const name = document.getElementById('new-prod-name')?.value.trim();
-        const category_id = document.getElementById('new-prod-category')?.value;
-        const base_uom = document.getElementById('new-prod-uom')?.value;
-        const purchase = parseFloat(document.getElementById('new-prod-purchase')?.value || '0');
-        const selling = parseFloat(document.getElementById('new-prod-selling')?.value || '0');
-        const stock = parseInt(document.getElementById('new-prod-stock')?.value || '0', 10);
-        const reorder = parseInt(document.getElementById('new-prod-reorder')?.value || '10', 10);
-
         try {
+            const sku = document.getElementById('new-prod-sku').value;
+            const barcode = document.getElementById('new-prod-barcode').value;
+            const name = document.getElementById('new-prod-name').value;
+            const category_id = document.getElementById('new-prod-category').value;
+            const base_uom = document.getElementById('new-prod-uom').value;
+            const buy = parseFloat(document.getElementById('new-prod-purchase').value) || 0;
+            const sell = parseFloat(document.getElementById('new-prod-selling').value) || 0;
+            const tax_id = document.getElementById('new-prod-tax').value;
+            const stock = parseInt(document.getElementById('new-prod-stock').value, 10) || 0;
+
+            App.showToast('Writing product to Supabase PostgreSQL...', 'info');
+
             await window.SupabaseClient.createProduct({
                 sku,
                 barcode,
                 name,
                 category_id,
                 base_uom,
-                purchase_price: purchase * 100, // C minor units
-                selling_price: selling * 100,
+                purchase_price: Math.round(buy * 100),
+                selling_price: Math.round(sell * 100),
+                tax_category_id: tax_id,
                 initial_stock: stock,
-                reorder_point: reorder
+                reorder_point: 10
             });
 
-            App.showToast(`Product ${sku} created and synchronized with cloud!`, 'success');
             this.hideAddModal();
-            this.render(document.getElementById('main-content'));
+            App.showToast(`Product ${sku} created and synced with live cloud database!`, 'success');
+            await this.render(document.getElementById('main-content'));
         } catch (err) {
             App.showToast(`Failed to create product: ${err.message}`, 'danger');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.innerText = 'Save Product';
-            }
         }
     },
 
     async deleteProduct(id, name) {
-        if (!confirm(`Are you sure you want to delete ${name}? This will remove its inventory balances.`)) return;
-
+        if (!confirm(`Are you sure you want to delete product "${name}" from Supabase?`)) return;
         try {
+            App.showToast('Deleting product from cloud DB...', 'info');
             await window.SupabaseClient.deleteProduct(id);
-            App.showToast(`Deleted ${name} from cloud database.`, 'info');
-            this.render(document.getElementById('main-content'));
+            App.showToast('Product deleted successfully.', 'success');
+            await this.render(document.getElementById('main-content'));
         } catch (err) {
             App.showToast(`Delete failed: ${err.message}`, 'danger');
         }

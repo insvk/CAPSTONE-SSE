@@ -25,3 +25,4 @@ async function checkDb() {
 }
 
 checkDb().catch(console.error);
+

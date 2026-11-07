@@ -12,7 +12,7 @@ console.log('===================================================================
 
 const requiredFiles = [
     'frontend/index.html',
-    'frontend/css/tabler-theme.css',
+    'frontend/css/shadcn-theme.css',
     'frontend/css/pos.css',
     'frontend/css/login.css',
     'frontend/js/app.js',
@@ -30,6 +30,7 @@ const requiredFiles = [
     'frontend/js/views/accounting.js',
     'frontend/js/views/staff.js',
     'frontend/js/views/audit.js',
+    'frontend/js/views/c_inspector.js',
     'api/index.js',
     'database/supabase_setup.sql'
 ];

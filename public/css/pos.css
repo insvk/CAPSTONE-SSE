@@ -1,14 +1,100 @@
 /**
  * POS Terminal & Tax Invoice Styling
  * High-Speed Cashier Interface with Thermal & A4 Print Layouts
+ * Faithful to Shadcn UI Kit Dark Theme Palette
  */
+
+:root {
+    --tblr-card-bg: #121215;
+    --tblr-card-bg-subtle: #18181c;
+    --tblr-border-color: #222226;
+    --tblr-text-primary: #f4f4f5;
+    --tblr-text-secondary: #a1a1aa;
+    --tblr-text-muted: #71717a;
+    --tblr-primary: #3b82f6;
+    --tblr-success: #22c55e;
+    --tblr-radius: 8px;
+    --tblr-radius-sm: 6px;
+    --tblr-transition: all 0.15s ease;
+}
 
 .pos-container {
     display: grid;
-    grid-template-columns: 1fr 390px;
-    gap: 18px;
-    min-height: calc(100vh - 140px);
-    height: auto;
+    grid-template-columns: 1fr 400px;
+    gap: 20px;
+    min-height: calc(100vh - 120px);
+}
+
+.pos-item-card, .pos-product-card {
+    background: #121215;
+    border: 1px solid #222226;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pos-item-card:hover, .pos-product-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    background: #18181c;
+}
+
+.pos-cart-line, .pos-cart-item {
+    background: #18181c;
+    border: 1px solid #222226;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pos-cart-items-wrap, .pos-cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 220px;
+    max-height: calc(100vh - 460px);
+}
+
+.pos-totals-box, .pos-cart-summary {
+    padding: 14px 18px;
+    border-top: 1px solid #222226;
+    background: #101013;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pos-btn-checkout, .pos-checkout-btn {
+    width: 100%;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    background: #ffffff;
+    color: #09090b;
+    border: 1px solid #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pos-btn-checkout:hover:not(:disabled), .pos-checkout-btn:hover:not(:disabled) {
+    background: #e4e4e7;
+}
+
+.pos-btn-checkout:disabled, .pos-checkout-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 @media (max-width: 1080px) {
