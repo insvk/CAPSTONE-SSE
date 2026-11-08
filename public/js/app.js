@@ -350,11 +350,54 @@ const App = {
         }
     },
 
-    exportData() {
-        this.showToast('Generating CSV report from live Supabase ledger...', 'info');
-        setTimeout(() => {
-            this.showToast('Export complete: IMBS_Enterprise_Ledger_2026.csv downloaded.', 'success');
-        }, 800);
+    async exportData() {
+        this.showToast('Generating enterprise CSV report from live Supabase cloud...', 'info');
+        try {
+            const [balances, invoices] = await Promise.all([
+                window.SupabaseClient.getInventoryBalances(),
+                window.SupabaseClient.getInvoices()
+            ]);
+
+            const rows = [
+                ['--- INVENTORY BALANCES & VALUATION ---'],
+                ['SKU', 'Product Name', 'Warehouse', 'On Hand', 'Reserved', 'Unit WAC (INR)', 'Total Valuation (INR)', 'Low Stock'],
+                ...balances.map(b => [
+                    `"${b.sku}"`,
+                    `"${b.product_name}"`,
+                    `"${b.warehouse_name}"`,
+                    b.quantity_on_hand,
+                    b.quantity_reserved,
+                    (b.weighted_avg_cost / 100).toFixed(2),
+                    ((b.quantity_on_hand * b.weighted_avg_cost) / 100).toFixed(2),
+                    b.is_low_stock ? 'YES' : 'NO'
+                ]),
+                [],
+                ['--- SALES & TAX INVOICES ---'],
+                ['Invoice #', 'Date', 'Customer', 'Subtotal (INR)', 'Tax GST (INR)', 'Grand Total (INR)', 'Status'],
+                ...invoices.map(inv => [
+                    `"${inv.invoice_number}"`,
+                    `"${inv.invoice_date}"`,
+                    `"${inv.customer_name}"`,
+                    (inv.subtotal / 100).toFixed(2),
+                    (inv.tax_amount / 100).toFixed(2),
+                    (inv.grand_total / 100).toFixed(2),
+                    inv.status
+                ])
+            ];
+
+            const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `IMBS_Enterprise_Report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            this.showToast('Export complete: IMBS_Enterprise_Report.csv downloaded.', 'success');
+        } catch (err) {
+            console.error('[Export error]', err);
+            this.showToast('Export failed: ' + err.message, 'danger');
+        }
     },
 
     toggleTheme() {

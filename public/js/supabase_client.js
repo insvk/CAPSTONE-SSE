@@ -1514,11 +1514,13 @@ const SupabaseClient = {
         let todayBillingCents = 0;
         let pendingPaymentsCents = 0;
         let unpaidInvoicesCount = 0;
+        let totalTaxCents = 0;
 
         const todayStr = new Date().toISOString().split('T')[0];
 
         invoices.forEach(inv => {
             totalRevenueCents += inv.grand_total;
+            totalTaxCents += (inv.tax_amount || 0);
             if (inv.invoice_date === todayStr) {
                 todayBillingCents += inv.grand_total;
             }
@@ -1529,15 +1531,30 @@ const SupabaseClient = {
         });
 
         // 3. Stock Capacity Utilization (Available vs Total)
-        const totalCapacityEstimated = Math.max(500, totalUnitsOnHand * 1.25);
-        const capacityUtilizationPct = Math.min(100, Math.round((totalUnitsOnHand / totalCapacityEstimated) * 100));
+        // 2,000 units is the standard enterprise capacity ceiling across hubs
+        const maxHubCapacity = 2000;
+        const capacityUtilizationPct = Math.min(100, Math.round((totalUnitsOnHand / maxHubCapacity) * 100));
 
-        // 4. Category breakdown for chart
+        // 4. Warehouse Breakdown
+        const warehouseBreakdown = {};
+        balances.forEach(b => {
+            const wh = b.warehouse_name || 'Main Central Hub';
+            if (!warehouseBreakdown[wh]) warehouseBreakdown[wh] = { units: 0, valuation_cents: 0 };
+            warehouseBreakdown[wh].units += b.quantity_on_hand;
+            warehouseBreakdown[wh].valuation_cents += (b.quantity_on_hand * b.weighted_avg_cost);
+        });
+
+        // 5. Low stock items
+        const lowStockItems = balances.filter(b => b.is_low_stock || b.quantity_on_hand <= b.reorder_point);
+
+        // 6. Category breakdown for chart
         const categoryMap = {};
         balances.forEach(b => {
             const cat = b.product_name ? b.product_name.split(' ')[0] : 'General';
             categoryMap[cat] = (categoryMap[cat] || 0) + b.quantity_on_hand;
         });
+
+        const avgInvoiceValueCents = invoices.length > 0 ? Math.round(totalRevenueCents / invoices.length) : 0;
 
         return {
             total_valuation_cents: totalValuationCents,
@@ -1547,6 +1564,10 @@ const SupabaseClient = {
             today_billing_formatted: `₹${(todayBillingCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
             total_revenue_cents: totalRevenueCents,
             total_revenue_formatted: `₹${(totalRevenueCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+            total_tax_collected_cents: totalTaxCents,
+            total_tax_collected_formatted: `₹${(totalTaxCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+            avg_invoice_value_cents: avgInvoiceValueCents,
+            avg_invoice_value_formatted: `₹${(avgInvoiceValueCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
             active_skus_count: products.length,
             low_stock_count: lowStockCount,
             capacity_utilization_pct: capacityUtilizationPct,
@@ -1554,7 +1575,12 @@ const SupabaseClient = {
             pending_payments_cents: pendingPaymentsCents,
             pending_payments_formatted: `₹${(pendingPaymentsCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
             total_invoices_count: invoices.length,
-            category_distribution: categoryMap
+            category_distribution: categoryMap,
+            warehouse_breakdown: warehouseBreakdown,
+            low_stock_items: lowStockItems,
+            invoices: invoices,
+            balances: balances,
+            products: products
         };
     },
 
