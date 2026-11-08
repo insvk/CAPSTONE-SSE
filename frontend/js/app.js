@@ -12,7 +12,7 @@ const App = {
         this.bindEvents();
         // Load dynamic store configuration from cloud DB
         if (window.StoreConfig && window.StoreConfig.loadFromCloud) {
-            window.StoreConfig.loadFromCloud().catch(() => {});
+            window.StoreConfig.loadFromCloud().catch(() => { });
         }
         // Check authentication
         if (window.AuthController) {
