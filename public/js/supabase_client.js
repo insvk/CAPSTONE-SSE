@@ -412,21 +412,59 @@ const SupabaseClient = {
     // PRODUCTS CATALOG
     // --------------------------------------------------------------------------
     async getProducts() {
-        const data = await this.restRequest('products?select=id,sku,barcode,name,description,base_uom,purchase_price_cents,selling_price_cents,reorder_point,is_active,categories(name),tax_categories(tax_rate_bps)&order=created_at.desc');
-        return data.map(p => ({
-            id: p.id,
-            sku: p.sku,
-            barcode: p.barcode,
-            name: p.name,
-            description: p.description,
-            category: p.categories ? p.categories.name : 'General',
-            base_uom: p.base_uom,
-            purchase_price: p.purchase_price_cents,
-            selling_price: p.selling_price_cents,
-            tax_rate_bps: p.tax_categories ? p.tax_categories.tax_rate_bps : 1800,
-            reorder_point: p.reorder_point,
-            is_active: p.is_active
-        }));
+        const data = await this.restRequest('products?select=id,sku,barcode,name,description,base_uom,purchase_price_cents,selling_price_cents,reorder_point,is_active,categories(name),tax_categories(tax_rate_bps),inventory_balances(id,warehouse_id,quantity_on_hand,quantity_reserved,weighted_avg_cost_cents,warehouses(name))&order=created_at.desc');
+        return (data || []).map(p => {
+            const balances = p.inventory_balances || [];
+            const totalStock = balances.reduce((sum, b) => sum + (Number(b.quantity_on_hand) || 0), 0);
+            const totalReserved = balances.reduce((sum, b) => sum + (Number(b.quantity_reserved) || 0), 0);
+            const totalAvailable = Math.max(0, totalStock - totalReserved);
+
+            return {
+                id: p.id,
+                sku: p.sku,
+                barcode: p.barcode,
+                name: p.name,
+                description: p.description,
+                category: p.categories ? p.categories.name : 'General',
+                base_uom: p.base_uom,
+                purchase_price: p.purchase_price_cents,
+                selling_price: p.selling_price_cents,
+                tax_rate_bps: p.tax_categories ? p.tax_categories.tax_rate_bps : 1800,
+                reorder_point: p.reorder_point,
+                is_active: p.is_active,
+                stock_on_hand: totalStock,
+                stock_reserved: totalReserved,
+                stock_available: totalAvailable,
+                inventory_balances: balances
+            };
+        });
+    },
+
+    async updateProductPrice(productId, newSellingPriceCents, newPurchaseCostCents) {
+        const sell = Math.round(Number(newSellingPriceCents) || 0);
+        const buy = Math.round(Number(newPurchaseCostCents) || 0);
+
+        // 1. Update master product price in Supabase PostgreSQL
+        const res = await this.restRequest(`products?id=eq.${productId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                selling_price_cents: sell,
+                purchase_price_cents: buy,
+                updated_at: new Date().toISOString()
+            })
+        });
+
+        // 2. Update weighted average cost in all warehouse inventory balances for this product
+        await this.restRequest(`inventory_balances?product_id=eq.${productId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                weighted_avg_cost_cents: buy,
+                updated_at: new Date().toISOString()
+            })
+        }).catch(() => {});
+
+        await this.logAudit("PRODUCT_PRICE_UPDATE", "PRODUCT", productId, `Price updated to Selling ₹${(sell/100).toFixed(2)}, Cost ₹${(buy/100).toFixed(2)}`);
+        return res && res[0] ? res[0] : { id: productId, selling_price_cents: sell, purchase_price_cents: buy };
     },
 
     async createProduct(prod) {
@@ -570,6 +608,7 @@ const SupabaseClient = {
                         await this.restRequest('inventory_balances', {
                             method: 'POST',
                             body: JSON.stringify({
+                                organization_id: "00000000-0000-0000-0000-000000000001",
                                 warehouse_id: defaultWarehouseId,
                                 product_id: newProd[0].id,
                                 quantity_on_hand: stock,
@@ -607,10 +646,10 @@ const SupabaseClient = {
     // INVENTORY & STOCK MOVEMENTS
     // --------------------------------------------------------------------------
     async getInventoryBalances() {
-        const query = `inventory_balances?select=id,warehouse_id,product_id,quantity_on_hand,quantity_reserved,weighted_avg_cost_cents,products(sku,name,reorder_point,selling_price_cents),warehouses(name)&order=quantity_on_hand.desc`;
+        const query = `inventory_balances?select=id,warehouse_id,product_id,quantity_on_hand,quantity_reserved,weighted_avg_cost_cents,products(id,sku,name,reorder_point,selling_price_cents,purchase_price_cents,base_uom),warehouses(id,name,code)&order=quantity_on_hand.desc`;
         const data = await this.restRequest(query);
 
-        return data.map(b => {
+        return (data || []).map(b => {
             const onHand = Number(b.quantity_on_hand) || 0;
             const reserved = Number(b.quantity_reserved) || 0;
             const reorder = b.products ? Number(b.products.reorder_point) || 10 : 10;
@@ -618,14 +657,17 @@ const SupabaseClient = {
                 id: b.id,
                 warehouse_id: b.warehouse_id,
                 warehouse_name: b.warehouses ? b.warehouses.name : 'Main Hub',
+                warehouse_code: b.warehouses ? b.warehouses.code : 'WH',
                 product_id: b.product_id,
                 sku: b.products ? b.products.sku : 'SKU',
                 product_name: b.products ? b.products.name : 'Unknown Item',
+                base_uom: b.products ? b.products.base_uom : 'PCS',
                 quantity_on_hand: onHand,
                 quantity_reserved: reserved,
                 quantity_available: Math.max(0, onHand - reserved),
                 weighted_avg_cost: Number(b.weighted_avg_cost_cents) || 0,
                 selling_price: b.products ? Number(b.products.selling_price_cents) || 0 : 0,
+                purchase_price: b.products ? Number(b.products.purchase_price_cents) || 0 : 0,
                 reorder_point: reorder,
                 is_low_stock: onHand <= reorder
             };
@@ -634,50 +676,82 @@ const SupabaseClient = {
 
     async adjustStock(warehouseId, productId, deltaQty, reason = "Cycle count audit") {
         const user = this.getCurrentUser();
-        // Fetch current balance
-        const balances = await this.restRequest(`inventory_balances?warehouse_id=eq.${warehouseId}&product_id=eq.${productId}`);
-        if (!balances || balances.length === 0) throw new Error("Inventory balance record not found.");
+        const delta = Number(deltaQty) || 0;
 
-        const bal = balances[0];
-        const newQty = Math.max(0, Number(bal.quantity_on_hand) + Number(deltaQty));
+        // Fetch or auto-create balance record
+        let balances = await this.restRequest(`inventory_balances?warehouse_id=eq.${warehouseId}&product_id=eq.${productId}`);
+        let bal = balances && balances.length > 0 ? balances[0] : null;
 
-        // Update balance
-        await this.restRequest(`inventory_balances?id=eq.${bal.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-                quantity_on_hand: newQty,
-                updated_at: new Date().toISOString()
-            })
-        });
+        if (!bal) {
+            // Retrieve product to get cost
+            const prodData = await this.restRequest(`products?id=eq.${productId}&select=purchase_price_cents`).catch(() => []);
+            const costCents = prodData && prodData[0] ? (Number(prodData[0].purchase_price_cents) || 0) : 0;
 
-        // Record stock movement
-        const mov = await this.restRequest('stock_movements', {
-            method: 'POST',
-            body: JSON.stringify({
-                organization_id: "00000000-0000-0000-0000-000000000001",
-                warehouse_id: warehouseId,
-                movement_type: deltaQty >= 0 ? "ADJUST_IN" : "ADJUST_OUT",
-                reference_number: `ADJ-${Date.now().toString().slice(-6)}`,
-                notes: reason,
-                created_by: user ? user.id : null
-            })
-        });
-
-        if (mov && mov[0]) {
-            await this.restRequest('stock_movement_items', {
+            const newBalRes = await this.restRequest('inventory_balances', {
                 method: 'POST',
                 body: JSON.stringify({
-                    movement_id: mov[0].id,
+                    organization_id: "00000000-0000-0000-0000-000000000001",
+                    warehouse_id: warehouseId,
                     product_id: productId,
-                    quantity_delta: deltaQty,
-                    unit_cost_cents: bal.weighted_avg_cost_cents,
-                    balance_after: newQty
+                    quantity_on_hand: Math.max(0, delta),
+                    quantity_reserved: 0,
+                    weighted_avg_cost_cents: costCents
                 })
             });
+            bal = newBalRes && newBalRes[0] ? newBalRes[0] : null;
+            if (!bal) throw new Error("Failed to initialize inventory balance in warehouse.");
+        } else {
+            const newQty = Math.max(0, Number(bal.quantity_on_hand) + delta);
+            await this.restRequest(`inventory_balances?id=eq.${bal.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    quantity_on_hand: newQty,
+                    updated_at: new Date().toISOString()
+                })
+            });
+            bal.quantity_on_hand = newQty;
         }
 
-        await this.logAudit("STOCK_ADJUSTMENT", "INVENTORY", bal.id, `Stock adjusted by ${deltaQty} units (${reason}). New balance: ${newQty}`);
-        return { success: true, new_quantity: newQty };
+        // Record stock movement audit trail
+        try {
+            const mov = await this.restRequest('stock_movements', {
+                method: 'POST',
+                body: JSON.stringify({
+                    organization_id: "00000000-0000-0000-0000-000000000001",
+                    warehouse_id: warehouseId,
+                    movement_type: delta >= 0 ? "ADJUST_IN" : "ADJUST_OUT",
+                    reference_number: `ADJ-${Date.now().toString().slice(-6)}`,
+                    notes: reason,
+                    created_by: user ? user.id : null
+                })
+            });
+
+            if (mov && mov[0]) {
+                await this.restRequest('stock_movement_items', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        movement_id: mov[0].id,
+                        product_id: productId,
+                        quantity_delta: delta,
+                        unit_cost_cents: bal.weighted_avg_cost_cents || 0,
+                        balance_after: Number(bal.quantity_on_hand)
+                    })
+                });
+            }
+        } catch (mErr) {
+            console.warn("[Stock movement log notice]", mErr);
+        }
+
+        await this.logAudit("STOCK_ADJUSTMENT", "INVENTORY", bal.id, `Stock adjusted by ${delta} units (${reason}). New balance: ${bal.quantity_on_hand}`);
+        return { success: true, new_quantity: Number(bal.quantity_on_hand) };
+    },
+
+    async setAbsoluteStock(warehouseId, productId, newQty, reason = "Physical Inventory Count") {
+        const targetQty = Math.max(0, Number(newQty) || 0);
+        let balances = await this.restRequest(`inventory_balances?warehouse_id=eq.${warehouseId}&product_id=eq.${productId}`);
+        const currentQty = balances && balances[0] ? (Number(balances[0].quantity_on_hand) || 0) : 0;
+        const delta = targetQty - currentQty;
+        return await this.adjustStock(warehouseId, productId, delta, reason);
     },
 
     async importBulkStock(items, defaultWarehouseId, batchNotes = "Bulk CSV Stock Inward") {
@@ -741,6 +815,7 @@ const SupabaseClient = {
                     await this.restRequest('inventory_balances', {
                         method: 'POST',
                         body: JSON.stringify({
+                            organization_id: "00000000-0000-0000-0000-000000000001",
                             warehouse_id: whId,
                             product_id: prod.id,
                             quantity_on_hand: newBalQty,
@@ -812,6 +887,7 @@ const SupabaseClient = {
             await this.restRequest('inventory_balances', {
                 method: 'POST',
                 body: JSON.stringify({
+                    organization_id: "00000000-0000-0000-0000-000000000001",
                     warehouse_id: targetWarehouseId,
                     product_id: productId,
                     quantity_on_hand: quantity,
@@ -1466,6 +1542,7 @@ const SupabaseClient = {
         return {
             total_valuation_cents: totalValuationCents,
             total_valuation_formatted: `₹${(totalValuationCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+            total_units_on_hand: totalUnitsOnHand,
             today_billing_cents: todayBillingCents,
             today_billing_formatted: `₹${(todayBillingCents / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
             total_revenue_cents: totalRevenueCents,

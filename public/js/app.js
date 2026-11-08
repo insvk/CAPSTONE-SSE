@@ -238,56 +238,67 @@ const App = {
 
         this.updateUserDisplay();
 
-        switch (viewName) {
-            case 'dashboard':
-                DashboardView.render(mainContent);
-                break;
+        try {
+            switch (viewName) {
+                case 'dashboard':
+                    DashboardView.render(mainContent);
+                    break;
 
-            case 'products':
-                ProductsView.render(mainContent);
-                break;
+                case 'products':
+                    ProductsView.render(mainContent);
+                    break;
 
-            case 'inventory':
-                InventoryView.render(mainContent);
-                break;
+                case 'inventory':
+                    InventoryView.render(mainContent);
+                    break;
 
-            case 'procurement':
-                ProcurementView.render(mainContent);
-                break;
+                case 'procurement':
+                    ProcurementView.render(mainContent);
+                    break;
 
-            case 'pos':
-                PosView.render(mainContent);
-                break;
+                case 'pos':
+                    PosView.render(mainContent);
+                    break;
 
-            case 'invoices':
-                InvoicesView.render(mainContent);
-                break;
+                case 'invoices':
+                    InvoicesView.render(mainContent);
+                    break;
 
-            case 'accounting':
-                AccountingView.render(mainContent);
-                break;
+                case 'accounting':
+                    AccountingView.render(mainContent);
+                    break;
 
-            case 'audit':
-                AuditView.render(mainContent);
-                break;
+                case 'audit':
+                    AuditView.render(mainContent);
+                    break;
 
-            case 'customers':
-                CustomersView.render(mainContent);
-                break;
+                case 'customers':
+                    CustomersView.render(mainContent);
+                    break;
 
-            case 'staff':
-                StaffView.render(mainContent);
-                break;
+                case 'staff':
+                    StaffView.render(mainContent);
+                    break;
 
-            case 'c_inspector':
-                if (window.CInspectorView) {
-                    CInspectorView.render(mainContent);
-                }
-                break;
+                case 'c_inspector':
+                    if (window.CInspectorView) {
+                        CInspectorView.render(mainContent);
+                    }
+                    break;
 
-            default:
-                this.navigateTo('dashboard');
-                break;
+                default:
+                    this.navigateTo('dashboard');
+                    break;
+            }
+        } catch (err) {
+            console.error(`[Router Render Error: ${viewName}]`, err);
+            mainContent.innerHTML = `
+                <div class="shadcn-card" style="border-color: #ef4444; color: #ef4444; padding: 24px;">
+                    <h3 style="margin: 0 0 8px 0; color: #ffffff;">Failed to render view: ${viewName}</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 16px 0;">${err.message}</p>
+                    <button class="shadcn-btn-primary" onclick="App.navigateTo('${viewName}')">Retry View</button>
+                </div>
+            `;
         }
     },
 

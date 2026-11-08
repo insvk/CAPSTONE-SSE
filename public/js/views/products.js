@@ -58,6 +58,7 @@ const ProductsView = {
                                 <th>UOM</th>
                                 <th style="text-align: right;">PURCHASE PRICE</th>
                                 <th style="text-align: right;">SELLING PRICE</th>
+                                <th style="text-align: center;">STOCK ON HAND</th>
                                 <th style="text-align: center;">GST RATE</th>
                                 <th style="text-align: center;">REORDER PT</th>
                                 <th style="text-align: center;">STATUS</th>
@@ -68,6 +69,38 @@ const ProductsView = {
                             ${this.renderRows(this.productsList)}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Quick Edit Price Modal (Edit Price Anytime) -->
+            <div id="modal-quick-edit-price" class="tblr-modal-backdrop" style="display: none;">
+                <div class="tblr-modal-dialog" style="max-width: 440px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+                    <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                        <div>
+                            <h3 class="tblr-modal-title" style="color: #ffffff; font-size: 16px; margin: 0;">Edit Product Price Anytime</h3>
+                            <div id="quick-price-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Update selling price and purchase cost in Supabase cloud</div>
+                        </div>
+                        <button class="tblr-modal-close" onclick="ProductsView.hideQuickPriceModal()">&times;</button>
+                    </div>
+                    <form onsubmit="ProductsView.handleQuickPriceSave(event)">
+                        <input type="hidden" id="quick-price-prod-id" />
+                        <div class="tblr-modal-body" style="padding: 20px;">
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Selling Price (MRP ₹) *</label>
+                                <input type="number" step="0.01" id="quick-price-selling" class="shadcn-input" style="font-size: 16px; font-weight: 700; height: 42px;" required />
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Reflects instantly on all POS billing counters, quotes, and customer receipts.</div>
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Purchase / Cost Price (₹) *</label>
+                                <input type="number" step="0.01" id="quick-price-purchase" class="shadcn-input" style="font-size: 16px; font-weight: 700; height: 42px;" required />
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Updates inventory valuation & weighted average cost in Stock Ledger.</div>
+                            </div>
+                        </div>
+                        <div class="tblr-modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #222226;">
+                            <button type="button" class="shadcn-btn-secondary" onclick="ProductsView.hideQuickPriceModal()">Cancel</button>
+                            <button type="submit" id="btn-save-quick-price" class="shadcn-btn-primary" style="background: #22c55e; color: #09090b; border-color: #22c55e; font-weight: 700;">Save Price to Cloud</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -293,7 +326,7 @@ const ProductsView = {
 
     renderRows(products) {
         if (!products || products.length === 0) {
-            return `<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">No products found in live database. Click '+ Add New SKU' or 'Bulk CSV Import' above to register fresh items.</td></tr>`;
+            return `<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">No products found in live database. Click '+ Add New SKU' or 'Bulk CSV Import' above to register fresh items.</td></tr>`;
         }
 
         return products.map(p => {
@@ -301,6 +334,13 @@ const ProductsView = {
             const selling = (p.selling_price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
             const taxPct = (p.tax_rate_bps / 100).toFixed(0);
             const barcodeVal = p.barcode || p.sku;
+            const stockQty = p.stock_on_hand !== undefined ? p.stock_on_hand : 0;
+            const isLowStock = stockQty <= (p.reorder_point || 10);
+            const isOutOfStock = stockQty === 0;
+
+            const whBreakdown = (p.inventory_balances && p.inventory_balances.length > 0)
+                ? p.inventory_balances.map(b => `${b.warehouses ? b.warehouses.name : 'Hub'}: ${b.quantity_on_hand}`).join(', ')
+                : 'No warehouse allocation';
 
             return `
                 <tr>
@@ -314,7 +354,17 @@ const ProductsView = {
                     </td>
                     <td><span class="shadcn-badge blue">${p.base_uom}</span></td>
                     <td style="text-align: right; font-family: var(--font-mono); color: var(--text-secondary);">₹${purchase}</td>
-                    <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: var(--accent-green);">₹${selling}</td>
+                    <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: var(--accent-green);">
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                            <span>₹${selling}</span>
+                            <button class="shadcn-btn-secondary" style="padding: 1px 6px; font-size: 10px; height: 20px; line-height: 1; border-color: rgba(34, 197, 94, 0.4);" onclick="ProductsView.showQuickPriceModal('${p.id}')" title="Edit Selling & Purchase Price">Edit</button>
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="shadcn-badge ${isOutOfStock ? 'red' : (isLowStock ? 'yellow' : 'green')}" style="font-weight: 700;" title="${whBreakdown}">
+                            ${stockQty} ${p.base_uom}
+                        </span>
+                    </td>
                     <td style="text-align: center;"><span class="shadcn-badge green">${taxPct}% GST</span></td>
                     <td style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">${p.reorder_point}</td>
                     <td style="text-align: center;">
@@ -323,6 +373,9 @@ const ProductsView = {
                         </span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
+                        <button class="shadcn-btn-secondary" style="padding: 3px 7px; font-size: 11px; margin-right: 4px; color: #22c55e; border-color: rgba(34, 197, 94, 0.4);" onclick="ProductsView.showQuickPriceModal('${p.id}')" title="Edit Selling Price & Cost Price anytime">
+                            ₹ Price
+                        </button>
                         <button class="shadcn-btn-secondary" style="padding: 3px 7px; font-size: 11px; margin-right: 4px;" onclick="ProductsView.showBarcodeLabelModal('${p.id}')" title="Generate and Print Barcode Label">
                             Label
                         </button>
@@ -336,6 +389,58 @@ const ProductsView = {
                 </tr>
             `;
         }).join('');
+    },
+
+    // --------------------------------------------------------------------------
+    // QUICK PRICE EDIT (EDIT PRICE ANYTIME)
+    // --------------------------------------------------------------------------
+    showQuickPriceModal(productId) {
+        const p = this.productsList.find(x => x.id === productId);
+        if (!p) return;
+        const m = document.getElementById('modal-quick-edit-price');
+        if (!m) return;
+
+        document.getElementById('quick-price-prod-id').value = p.id;
+        document.getElementById('quick-price-sub').innerText = `${p.sku} • ${p.name}`;
+        document.getElementById('quick-price-selling').value = ((p.selling_price || 0) / 100).toFixed(2);
+        document.getElementById('quick-price-purchase').value = ((p.purchase_price || 0) / 100).toFixed(2);
+        m.style.display = 'flex';
+        setTimeout(() => {
+            const input = document.getElementById('quick-price-selling');
+            if (input) { input.focus(); input.select(); }
+        }, 50);
+    },
+
+    hideQuickPriceModal() {
+        const m = document.getElementById('modal-quick-edit-price');
+        if (m) m.style.display = 'none';
+    },
+
+    async handleQuickPriceSave(e) {
+        e.preventDefault();
+        const id = document.getElementById('quick-price-prod-id').value;
+        const sellVal = parseFloat(document.getElementById('quick-price-selling').value) || 0;
+        const buyVal = parseFloat(document.getElementById('quick-price-purchase').value) || 0;
+        const btn = document.getElementById('btn-save-quick-price');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Saving to Cloud DB...';
+        }
+
+        try {
+            await window.SupabaseClient.updateProductPrice(id, Math.round(sellVal * 100), Math.round(buyVal * 100));
+            this.hideQuickPriceModal();
+            App.showToast('Product prices updated in Supabase cloud! Reflected across Products, Stock Ledger & POS.', 'success');
+            await this.render(document.getElementById('main-content'));
+        } catch (err) {
+            App.showToast(`Failed to update price: ${err.message}`, 'danger');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Save Price to Cloud';
+            }
+        }
     },
 
     filterProducts(query) {

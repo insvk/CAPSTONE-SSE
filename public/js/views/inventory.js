@@ -10,6 +10,7 @@
 const InventoryView = {
     balances: [],
     movements: [],
+    products: [],
     activeTab: 'balances', // 'balances' | 'movements'
     filterWarehouse: 'all',
     filterCategory: 'all',
@@ -25,12 +26,14 @@ const InventoryView = {
         `;
 
         try {
-            const [b, m] = await Promise.all([
+            const [b, m, p] = await Promise.all([
                 window.SupabaseClient.getInventoryBalances(),
-                window.SupabaseClient.getStockMovements()
+                window.SupabaseClient.getStockMovements(),
+                window.SupabaseClient.getProducts().catch(() => [])
             ]);
             this.balances = b || [];
             this.movements = m || [];
+            this.products = p || [];
             this.renderView(container);
         } catch (err) {
             container.innerHTML = `
@@ -160,7 +163,7 @@ const InventoryView = {
                         <div class="tblr-modal-body" style="padding: 20px;">
                             <div style="margin-bottom: 14px;">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Warehouse Hub *</label>
-                                <select id="adj-warehouse" class="shadcn-select" required>
+                                <select id="adj-warehouse" class="shadcn-select" onchange="InventoryView.updateAdjStockInfo()" required>
                                     <option value="20000000-0000-0000-0000-000000000001">Main Central Distribution Hub (Mumbai)</option>
                                     <option value="20000000-0000-0000-0000-000000000002">Bandra Retail Store Checkout (WH-POS1)</option>
                                 </select>
@@ -168,9 +171,15 @@ const InventoryView = {
 
                             <div style="margin-bottom: 14px;">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Select Product SKU *</label>
-                                <select id="adj-product" class="shadcn-select" required>
-                                    ${this.balances.map(b => `<option value="${b.product_id}">${b.sku} - ${b.product_name} (Current: ${b.quantity_on_hand})</option>`).join('')}
+                                <select id="adj-product" class="shadcn-select" onchange="InventoryView.updateAdjStockInfo()" required>
+                                    ${(this.products && this.products.length > 0 ? this.products : this.balances).map(p => {
+                                        const pid = p.id || p.product_id;
+                                        const sku = p.sku;
+                                        const name = p.name || p.product_name;
+                                        return `<option value="${pid}">${sku} - ${name}</option>`;
+                                    }).join('')}
                                 </select>
+                                <div id="adj-stock-info" style="font-size: 11px; color: #4ade80; margin-top: 4px;">Select warehouse and SKU to check live stock</div>
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
@@ -343,6 +352,73 @@ const InventoryView = {
                     </form>
                 </div>
             </div>
+
+            <!-- Modal 5: Edit Price Anytime (Stock & Products Synced) -->
+            <div id="modal-quick-price-stock" class="tblr-modal-backdrop" style="display: none;">
+                <div class="tblr-modal-dialog" style="max-width: 440px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+                    <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                        <div>
+                            <h3 class="tblr-modal-title" style="color: #ffffff; font-size: 16px; margin: 0;">Edit Product Price Anytime</h3>
+                            <div id="stock-price-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Update selling price and purchase cost in Supabase cloud</div>
+                        </div>
+                        <button class="tblr-modal-close" onclick="InventoryView.hidePriceModal()">&times;</button>
+                    </div>
+                    <form onsubmit="InventoryView.handlePriceSave(event)">
+                        <input type="hidden" id="stock-price-prod-id" />
+                        <div class="tblr-modal-body" style="padding: 20px;">
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Selling Price (MRP ₹) *</label>
+                                <input type="number" step="0.01" id="stock-price-selling" class="shadcn-input" style="font-size: 16px; font-weight: 700; height: 42px;" required />
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Reflects instantly across Products, Stock Ledger, and POS Billing.</div>
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Purchase / Cost Price (₹) *</label>
+                                <input type="number" step="0.01" id="stock-price-purchase" class="shadcn-input" style="font-size: 16px; font-weight: 700; height: 42px;" required />
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Updates inventory valuation & weighted average cost (WAC) in Supabase.</div>
+                            </div>
+                        </div>
+                        <div class="tblr-modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #222226;">
+                            <button type="button" class="shadcn-btn-secondary" onclick="InventoryView.hidePriceModal()">Cancel</button>
+                            <button type="submit" id="btn-save-stock-price" class="shadcn-btn-primary">Save Price in Cloud</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal 6: Set Exact Physical Stock Count -->
+            <div id="modal-set-count-stock" class="tblr-modal-backdrop" style="display: none;">
+                <div class="tblr-modal-dialog" style="max-width: 440px; background: #121215; border: 1px solid #27272a; border-radius: 12px;">
+                    <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                        <div>
+                            <h3 class="tblr-modal-title" style="color: #ffffff; font-size: 16px; margin: 0;">Set Physical Stock Count</h3>
+                            <div id="count-modal-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Direct physical count verification stored to cloud DB</div>
+                        </div>
+                        <button class="tblr-modal-close" onclick="InventoryView.hideSetCountModal()">&times;</button>
+                    </div>
+                    <form onsubmit="InventoryView.handleSetCountSave(event)">
+                        <input type="hidden" id="count-warehouse-id" />
+                        <input type="hidden" id="count-product-id" />
+                        <div class="tblr-modal-body" style="padding: 20px;">
+                            <div style="margin-bottom: 12px; padding: 10px 14px; background: #18181c; border: 1px solid #27272a; border-radius: 8px;">
+                                <div id="count-product-name" style="font-size: 14px; font-weight: 700; color: #fff;">Product</div>
+                                <div id="count-current-info" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Current recorded on-hand: 0</div>
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Verified Physical Count (Units) *</label>
+                                <input type="number" id="count-target-qty" min="0" class="shadcn-input" style="font-size: 18px; font-weight: 700; height: 44px;" required />
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Audit / Count Note</label>
+                                <input type="text" id="count-notes" class="shadcn-input" value="Physical Inventory Cycle Count Audit" />
+                            </div>
+                        </div>
+                        <div class="tblr-modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #222226;">
+                            <button type="button" class="shadcn-btn-secondary" onclick="InventoryView.hideSetCountModal()">Cancel</button>
+                            <button type="submit" id="btn-save-stock-count" class="shadcn-btn-primary">Update Cloud Balance</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         `;
     },
 
@@ -383,7 +459,8 @@ const InventoryView = {
                         <th style="text-align: right;">ON-HAND</th>
                         <th style="text-align: right;">RESERVED</th>
                         <th style="text-align: right;">AVAILABLE</th>
-                        <th style="text-align: right;">UNIT WAC</th>
+                        <th style="text-align: right;">SELLING PRICE (MRP)</th>
+                        <th style="text-align: right;">UNIT COST (WAC)</th>
                         <th style="text-align: right;">TOTAL VALUATION</th>
                         <th style="text-align: center;">STATUS</th>
                         <th style="text-align: right;">ACTIONS</th>
@@ -391,6 +468,7 @@ const InventoryView = {
                 </thead>
                 <tbody>
                     ${list.map(b => {
+                        const sell = ((b.selling_price || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
                         const wac = (b.weighted_avg_cost / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
                         const totalVal = ((b.quantity_on_hand * b.weighted_avg_cost) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
                         return `
@@ -403,6 +481,7 @@ const InventoryView = {
                                 <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: #fff;">${b.quantity_on_hand}</td>
                                 <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${b.quantity_reserved}</td>
                                 <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${b.quantity_available > 0 ? '#22c55e' : '#ef4444'};">${b.quantity_available}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600; color: #60a5fa;">₹${sell}</td>
                                 <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">₹${wac}</td>
                                 <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff;">₹${totalVal}</td>
                                 <td style="text-align: center;">
@@ -411,7 +490,13 @@ const InventoryView = {
                                     </span>
                                 </td>
                                 <td style="text-align: right; white-space: nowrap;">
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock">
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);" onclick="InventoryView.openPriceModal('${b.product_id}', '${b.sku}', '${b.product_name}', ${b.selling_price || 0}, ${b.weighted_avg_cost || 0})" title="Edit Selling Price & Cost Price anytime">
+                                        ₹ Price
+                                    </button>
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4);" onclick="InventoryView.openSetCountModal('${b.warehouse_id}', '${b.product_id}', '${b.sku}', '${b.product_name}', ${b.quantity_on_hand})" title="Set exact physical count">
+                                        Count
+                                    </button>
+                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock (+/- delta)">
                                         Adjust
                                     </button>
                                     <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickTransfer('${b.warehouse_id}', '${b.product_id}')" title="Transfer to another hub">
@@ -505,7 +590,10 @@ const InventoryView = {
 
     showAdjustModal() {
         const m = document.getElementById('modal-adjust-stock');
-        if (m) m.style.display = 'flex';
+        if (m) {
+            m.style.display = 'flex';
+            this.updateAdjStockInfo();
+        }
     },
 
     hideAdjustModal() {
@@ -517,8 +605,102 @@ const InventoryView = {
         this.showAdjustModal();
         const whSelect = document.getElementById('adj-warehouse');
         const prodSelect = document.getElementById('adj-product');
-        if (whSelect) whSelect.value = warehouseId;
-        if (prodSelect) prodSelect.value = productId;
+        if (whSelect && warehouseId) whSelect.value = warehouseId;
+        if (prodSelect && productId) prodSelect.value = productId;
+        this.updateAdjStockInfo();
+    },
+
+    updateAdjStockInfo() {
+        const whSelect = document.getElementById('adj-warehouse');
+        const prodSelect = document.getElementById('adj-product');
+        const infoEl = document.getElementById('adj-stock-info');
+        if (!whSelect || !prodSelect || !infoEl) return;
+
+        const whId = whSelect.value;
+        const prodId = prodSelect.value;
+
+        const match = this.balances.find(b => b.warehouse_id === whId && b.product_id === prodId);
+        if (match) {
+            infoEl.innerText = `Current on-hand in this warehouse: ${match.quantity_on_hand} ${match.base_uom} (Available: ${match.quantity_available})`;
+            infoEl.style.color = match.quantity_on_hand > 0 ? '#4ade80' : '#ef4444';
+        } else {
+            infoEl.innerText = `No balance record yet in this warehouse (will be initialized on save)`;
+            infoEl.style.color = '#60a5fa';
+        }
+    },
+
+    openPriceModal(productId, sku, name, sellingPriceCents, wacCostCents) {
+        const modal = document.getElementById('modal-quick-price-stock');
+        if (!modal) return;
+        document.getElementById('stock-price-prod-id').value = productId;
+        document.getElementById('stock-price-sub').innerText = `${sku} - ${name}`;
+        document.getElementById('stock-price-selling').value = ((Number(sellingPriceCents) || 0) / 100).toFixed(2);
+        document.getElementById('stock-price-purchase').value = ((Number(wacCostCents) || 0) / 100).toFixed(2);
+        modal.style.display = 'flex';
+    },
+
+    hidePriceModal() {
+        const modal = document.getElementById('modal-quick-price-stock');
+        if (modal) modal.style.display = 'none';
+    },
+
+    async handlePriceSave(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-stock-price');
+        if (btn) { btn.disabled = true; btn.innerText = 'Updating Cloud DB...'; }
+
+        const prodId = document.getElementById('stock-price-prod-id').value;
+        const sellCents = Math.round(parseFloat(document.getElementById('stock-price-selling').value) * 100);
+        const buyCents = Math.round(parseFloat(document.getElementById('stock-price-purchase').value) * 100);
+
+        try {
+            await window.SupabaseClient.updateProductPrice(prodId, sellCents, buyCents);
+            this.hidePriceModal();
+            App.showToast('Product price successfully updated and synchronized in Supabase cloud!', 'success');
+            await this.render(document.getElementById('main-content'));
+        } catch (err) {
+            App.showToast(`Failed to update price: ${err.message}`, 'danger');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = 'Save Price in Cloud'; }
+        }
+    },
+
+    openSetCountModal(warehouseId, productId, sku, name, currentOnHand) {
+        const modal = document.getElementById('modal-set-count-stock');
+        if (!modal) return;
+        document.getElementById('count-warehouse-id').value = warehouseId;
+        document.getElementById('count-product-id').value = productId;
+        document.getElementById('count-product-name').innerText = `${sku} - ${name}`;
+        document.getElementById('count-current-info').innerText = `Current recorded on-hand: ${currentOnHand} units`;
+        document.getElementById('count-target-qty').value = currentOnHand;
+        modal.style.display = 'flex';
+    },
+
+    hideSetCountModal() {
+        const modal = document.getElementById('modal-set-count-stock');
+        if (modal) modal.style.display = 'none';
+    },
+
+    async handleSetCountSave(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-stock-count');
+        if (btn) { btn.disabled = true; btn.innerText = 'Updating Cloud DB...'; }
+
+        const whId = document.getElementById('count-warehouse-id').value;
+        const prodId = document.getElementById('count-product-id').value;
+        const targetQty = parseInt(document.getElementById('count-target-qty').value, 10);
+        const notes = document.getElementById('count-notes').value.trim() || 'Physical Inventory Count Audit';
+
+        try {
+            await window.SupabaseClient.setAbsoluteStock(whId, prodId, targetQty, notes);
+            this.hideSetCountModal();
+            App.showToast(`Stock count of ${targetQty} units saved to Supabase cloud!`, 'success');
+            await this.render(document.getElementById('main-content'));
+        } catch (err) {
+            App.showToast(`Failed to update stock count: ${err.message}`, 'danger');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = 'Update Cloud Balance'; }
+        }
     },
 
     showBulkImportModal() {
