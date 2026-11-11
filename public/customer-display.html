@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Pole Display :: CSA0201-B-IMBS</title>
+    <link rel="icon" type="image/png" href="/img/simats_logo.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #070709;
+            color: #f4f4f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Top Header */
+        .disp-header {
+            background: #111116;
+            padding: 16px 32px;
+            border-bottom: 1px solid #22222a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .disp-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .disp-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .disp-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .disp-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+        .disp-subtitle {
+            font-size: 12px;
+            color: #a1a1aa;
+            margin-top: 2px;
+        }
+        .disp-station-tag {
+            font-family: monospace;
+            font-size: 12px;
+            color: #4ade80;
+            background: rgba(34, 197, 94, 0.12);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .disp-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: dispPulse 1.6s infinite;
+        }
+        @keyframes dispPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Content Layout */
+        .disp-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 24px;
+            padding: 24px 32px;
+            overflow: hidden;
+        }
+
+        /* Cart Box */
+        .disp-cart-box {
+            background: #111116;
+            border: 1px solid #22222a;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .disp-cart-header {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #a1a1aa;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #22222a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .disp-items-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .disp-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #17171e;
+            border-radius: 10px;
+            border: 1px solid #242430;
+            animation: itemSlideIn 0.22s ease-out;
+        }
+        @keyframes itemSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .disp-item-name {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 15px;
+        }
+        .disp-item-meta {
+            font-size: 12px;
+            color: #a1a1aa;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+        .disp-item-price {
+            font-weight: 800;
+            font-family: monospace;
+            color: #ffffff;
+            font-size: 18px;
+        }
+
+        /* Totals & QR Box */
+        .disp-totals-box {
+            background: #111116;
+            border: 1px solid #22222a;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .disp-savings-banner {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #4ade80;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .disp-due-wrap {
+            text-align: center;
+        }
+        .disp-due-label {
+            font-size: 12px;
+            font-weight: 800;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .disp-due-val {
+            font-size: 54px;
+            font-weight: 900;
+            color: #22c55e;
+            font-family: monospace;
+            margin: 8px 0 14px 0;
+            text-shadow: 0 0 24px rgba(34, 197, 94, 0.3);
+        }
+        .disp-tax-card {
+            background: #17171e;
+            border: 1px solid #242430;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .disp-tax-row {
+            display: flex;
+            justify-content: space-between;
+            color: #a1a1aa;
+        }
+        .disp-tax-val {
+            font-family: monospace;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Change Returning Box */
+        .disp-change-card {
+            background: #17171e;
+            border: 1px solid #22c55e;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            margin-top: 14px;
+            display: none;
+        }
+        .disp-change-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a1a1aa;
+            text-transform: uppercase;
+        }
+        .disp-change-val {
+            font-size: 32px;
+            font-weight: 900;
+            color: #22c55e;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
+        /* QR Section */
+        .disp-qr-section {
+            text-align: center;
+            margin-top: 14px;
+        }
+        .disp-qr-card {
+            background: #ffffff;
+            padding: 14px;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+        .disp-qr-hint {
+            font-size: 11px;
+            color: #a1a1aa;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .disp-footer {
+            padding: 12px 32px;
+            background: #111116;
+            border-top: 1px solid #22222a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #71717a;
+        }
+        .disp-footer-badge {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="disp-header">
+        <div class="disp-brand">
+            <div class="disp-logo">
+                <img src="/img/simats_logo.png" alt="SIMATS Logo" onerror="this.parentElement.innerText='SIMATS'">
+            </div>
+            <div>
+                <div class="disp-title" id="d-store-name">SSE ENTERPRISE HUB</div>
+                <div class="disp-subtitle" id="d-store-sub">Saveetha Institute of Medical and Technical Sciences</div>
+            </div>
+        </div>
+        <div class="disp-station-tag">
+            <span class="disp-pulse-dot"></span>
+            <span id="d-counter-badge">Active Station • Counter 01</span>
+        </div>
+    </div>
+
+    <div class="disp-content">
+        <!-- Left: Itemized Stream -->
+        <div class="disp-cart-box">
+            <div class="disp-cart-header">
+                <span>Itemized Bill Stream</span>
+                <span id="d-items-count" style="color: #60a5fa; font-family: monospace;">0 items</span>
+            </div>
+            <div class="disp-items-stream" id="d-items-list">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #71717a; text-align: center; gap: 12px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <div style="font-size: 15px; font-weight: 600; color: #a1a1aa;">Welcome! Scanned items will appear here in real time.</div>
+                    <div style="font-size: 12px; color: #71717a;">Please show your SIMATS Institutional ID card to claim educational concession.</div>
+                </div>
+            </div>
+            <div style="padding-top: 12px; border-top: 1px solid #22222a; font-size: 12px; color: #a1a1aa; display: flex; justify-content: space-between;">
+                <span>Customer: <strong id="d-cust-name" style="color: #fff;">Walk-in Cash Customer</strong></span>
+                <span id="d-cust-tier" style="color: #4ade80; font-weight: 700;">Retail Tier</span>
+            </div>
+        </div>
+
+        <!-- Right: Net Due, Savings, Taxes & UPI QR -->
+        <div class="disp-totals-box">
+            <div>
+                <div class="disp-savings-banner" id="d-savings-banner">
+                    Total Savings Today: ₹0.00
+                </div>
+                <div class="disp-due-wrap">
+                    <div class="disp-due-label">NET PAYABLE AMOUNT</div>
+                    <div class="disp-due-val" id="d-grand-total">₹0.00</div>
+                </div>
+                <div class="disp-tax-card">
+                    <div class="disp-tax-row">
+                        <span>Taxable Value:</span>
+                        <span class="disp-tax-val" id="d-subtotal">₹0.00</span>
+                    </div>
+                    <div class="disp-tax-row">
+                        <span>GST (CGST 9% + SGST 9%):</span>
+                        <span class="disp-tax-val" id="d-tax" style="color: #60a5fa;">₹0.00</span>
+                    </div>
+                    <div class="disp-tax-row" id="d-discount-row" style="display: none;">
+                        <span>Concession / Discount:</span>
+                        <span class="disp-tax-val" id="d-discount" style="color: #4ade80;">-₹0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="disp-change-card" id="d-change-box">
+                <div class="disp-change-title">Change Due to Return</div>
+                <div class="disp-change-val" id="d-change-val">₹0.00</div>
+            </div>
+
+            <div class="disp-qr-section">
+                <div style="font-size: 11px; font-weight: 700; color: #e4e4e7; margin-bottom: 10px; text-transform: uppercase;">
+                    Scan & Pay with Any UPI App
+                </div>
+                <div class="disp-qr-card" id="d-upi-qr">
+                    <div style="width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #64748b;">
+                        QR appears on checkout
+                    </div>
+                </div>
+                <div class="disp-qr-hint">
+                    GPay • PhonePe • Paytm • BHIM • Cred • NetBanking
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="disp-footer">
+        <div class="disp-footer-badge">
+            SIMATS SSE Enterprise POS Network • Real-time Cloud Synced Register
+        </div>
+        <div id="d-clock" style="font-family: monospace; color: #a1a1aa;">--:--:--</div>
+    </div>
+
+    <script src="/js/vendor_qrcode.js"></script>
+    <script src="/js/barcode_qr.js"></script>
+    <script>
+        setInterval(() => {
+            const c = document.getElementById('d-clock');
+            if (c) c.innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        function applyState(data) {
+            if (!data) return;
+            if (data.store && data.store.shop_name) {
+                document.getElementById('d-store-name').innerText = data.store.shop_name;
+            }
+            if (data.counter && data.counter.name) {
+                document.getElementById('d-counter-badge').innerText = 'Active Station • ' + data.counter.name;
+            }
+            if (data.customer) {
+                document.getElementById('d-cust-name').innerText = data.customer.name || 'Walk-in Cash Customer';
+                document.getElementById('d-cust-tier').innerText = data.customer.tier || 'Retail Tier';
+            }
+
+            const q = data.quotation || {};
+            const grand = (q.grand_total !== undefined ? q.grand_total : 0) / 100;
+            const sub = (q.subtotal !== undefined ? q.subtotal : 0) / 100;
+            const tax = (q.tax_total !== undefined ? q.tax_total : 0) / 100;
+            const disc = (q.discount_amount !== undefined ? q.discount_amount : (data.discount_total || 0)) / 100;
+
+            document.getElementById('d-grand-total').innerText = '₹' + grand.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            document.getElementById('d-subtotal').innerText = '₹' + sub.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            document.getElementById('d-tax').innerText = '₹' + tax.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+            const savingsEl = document.getElementById('d-savings-banner');
+            if (disc > 0) {
+                savingsEl.style.display = 'block';
+                savingsEl.innerText = 'Total Savings Today: ₹' + disc.toFixed(2);
+                document.getElementById('d-discount-row').style.display = 'flex';
+                document.getElementById('d-discount').innerText = '-₹' + disc.toFixed(2);
+            } else {
+                savingsEl.style.display = 'none';
+                document.getElementById('d-discount-row').style.display = 'none';
+            }
+
+            // Items
+            const items = data.cart || [];
+            const listEl = document.getElementById('d-items-list');
+            const countEl = document.getElementById('d-items-count');
+            countEl.innerText = items.reduce((s, i) => s + (Number(i.quantity) || 1), 0) + ' items';
+
+            if (items.length === 0) {
+                listEl.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #71717a; text-align: center; gap: 12px;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><div style="font-size: 15px; font-weight: 600; color: #a1a1aa;">Welcome! Scanned items will appear here in real time.</div><div style="font-size: 12px; color: #71717a;">Please show your SIMATS Institutional ID card to claim educational concession.</div></div>';
+            } else {
+                listEl.innerHTML = items.map(i => {
+                    const qty = Number(i.quantity) || 1;
+                    const rate = ((Number(i.unit_price) || 0) / 100).toFixed(2);
+                    const lineTot = ((qty * (Number(i.unit_price) || 0)) / 100).toFixed(2);
+                    return '<div class="disp-item-row"><div><div class="disp-item-name">' + (i.name || 'Item') + '</div><div class="disp-item-meta"><span>Qty: ' + qty + ' × ₹' + rate + '</span><span> • SKU: ' + (i.sku || 'SKU') + '</span></div></div><div class="disp-item-price">₹' + lineTot + '</div></div>';
+                }).join('');
+            }
+
+            // Change Due
+            const changeBox = document.getElementById('d-change-box');
+            const changeVal = document.getElementById('d-change-val');
+            if (data.change_due_cents && data.change_due_cents > 0) {
+                changeBox.style.display = 'block';
+                changeVal.innerText = '₹' + (data.change_due_cents / 100).toFixed(2);
+            } else {
+                changeBox.style.display = 'none';
+            }
+
+            // UPI QR
+            const qrEl = document.getElementById('d-upi-qr');
+            if (data.qrSvg) {
+                qrEl.innerHTML = data.qrSvg;
+            } else if (window.BarcodeQR && grand > 0) {
+                const store = data.store || {};
+                const upiUrl = 'upi://pay?pa=' + (store.upi_id || 'sse.retail@icici') + '&pn=' + encodeURIComponent(store.shop_name || 'SSE') + '&am=' + grand.toFixed(2) + '&cu=INR';
+                qrEl.innerHTML = window.BarcodeQR.qr(upiUrl, { size: 140 });
+            }
+        }
+
+        window.onCustomerDisplayUpdate = applyState;
+
+        try {
+            const channel = new BroadcastChannel('imbs_customer_display_bus');
+            channel.onmessage = (e) => applyState(e.data);
+        } catch (_) {}
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'imbs_cust_display_state' && e.newValue) {
+                try { applyState(JSON.parse(e.newValue)); } catch (_) {}
+            }
+        });
+
+        // Load initial state if present
+        try {
+            const init = localStorage.getItem('imbs_cust_display_state') || sessionStorage.getItem('imbs_cust_display_state');
+            if (init) applyState(JSON.parse(init));
+        } catch (_) {}
+    </script>
+</body>
+</html>

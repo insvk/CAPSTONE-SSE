@@ -29,3 +29,4 @@ $earthBmp.Dispose()
 $bmp.Dispose()
 
 Write-Host "Earth night image extracted successfully to $dest1 and $dest2!"
+

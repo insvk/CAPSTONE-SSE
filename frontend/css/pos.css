@@ -416,3 +416,226 @@
     }
 }
 
+/* ==============================================================================
+ * ADVANCED POS & CUSTOMER DISPLAY GOD-TIER STYLES
+ * ============================================================================== */
+
+/* Customer Display Status Pill */
+.pos-cust-disp-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pos-cust-disp-indicator.online {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.35);
+}
+.pos-cust-disp-indicator.offline {
+    background: rgba(113, 113, 122, 0.15);
+    color: #a1a1aa;
+    border-color: rgba(113, 113, 122, 0.3);
+}
+.pos-cust-disp-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+    animation: posPulse 1.8s infinite;
+}
+@keyframes posPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Denomination Calculator Buttons */
+.pos-denom-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+.pos-denom-btn {
+    background: #1c1c22;
+    border: 1px solid #2e2e36;
+    color: #f4f4f5;
+    padding: 7px 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.pos-denom-btn:hover {
+    background: #272730;
+    border-color: #3b82f6;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+.pos-denom-btn.exact {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+    color: #4ade80;
+    grid-column: span 2;
+}
+
+/* Split Payment Tender Rows */
+.pos-split-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #141418;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px;
+}
+.pos-split-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 70px;
+    gap: 8px;
+    align-items: center;
+}
+.pos-split-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e4e4e7;
+    background: #1f1f26;
+    padding: 6px 8px;
+    border-radius: 5px;
+    border: 1px solid #33333d;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pos-split-input {
+    height: 34px !important;
+    font-size: 13px !important;
+    font-family: var(--font-mono, monospace) !important;
+    font-weight: 700 !important;
+    text-align: right;
+}
+.pos-split-fill-btn {
+    height: 34px;
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #272730;
+    border: 1px solid #3f3f46;
+    color: #a1a1aa;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.pos-split-fill-btn:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+/* Parked / Held Order Cards */
+.pos-held-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.pos-held-card {
+    background: #16161b;
+    border: 1px solid #27272f;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.15s ease;
+}
+.pos-held-card:hover {
+    border-color: #3b82f6;
+    background: #1b1b22;
+}
+
+/* Customer Tier Badges */
+.pos-tier-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.pos-tier-pill.simats {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+.pos-tier-pill.b2b {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.pos-tier-pill.retail {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+/* Quick Promo Chips */
+.pos-promo-chip {
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #18181f;
+    border: 1px solid #2e2e38;
+    color: #e4e4e7;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.pos-promo-chip:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+/* Keyboard Hotkeys Footer Strip */
+.pos-shortcuts-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #0d0d10;
+    border-top: 1px solid #1f1f24;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.pos-key-badge {
+    background: #1e1e24;
+    border: 1px solid #33333c;
+    color: #f4f4f5;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    font-size: 10px;
+    margin-right: 3px;
+}
+

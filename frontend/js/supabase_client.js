@@ -1340,25 +1340,257 @@ const SupabaseClient = {
     },
 
     async getInvoices() {
-        const query = `invoices?select=id,invoice_number,invoice_date,subtotal_cents,discount_cents,tax_total_cents,round_off_cents,grand_total_cents,paid_amount_cents,balance_due_cents,status,is_pos,customers(name),invoice_lines(quantity,unit_price_cents,line_total_cents,products(name,sku))&order=created_at.desc`;
-        const data = await this.restRequest(query);
+        const query = `invoices?select=id,invoice_number,invoice_date,subtotal_cents,discount_cents,tax_total_cents,round_off_cents,grand_total_cents,paid_amount_cents,balance_due_cents,status,is_pos,payment_terms,created_at,customers(id,name,phone,tax_identifier),invoice_lines(quantity,unit_price_cents,tax_rate_bps,line_total_cents,products(id,name,sku,categories(name)))&order=created_at.desc`;
+        let data = [];
+        try {
+            data = await this.restRequest(query);
+        } catch (_) {
+            // Fallback for strict relational schemas
+            const simpleQuery = `invoices?select=id,invoice_number,invoice_date,subtotal_cents,discount_cents,tax_total_cents,round_off_cents,grand_total_cents,paid_amount_cents,balance_due_cents,status,is_pos,payment_terms,created_at,customers(name),invoice_lines(quantity,unit_price_cents,line_total_cents,products(name,sku))&order=created_at.desc`;
+            data = await this.restRequest(simpleQuery);
+        }
 
-        return data.map(inv => ({
-            id: inv.id,
-            invoice_number: inv.invoice_number,
-            customer_name: inv.customers ? inv.customers.name : 'Walk-in Retail Customer',
-            invoice_date: inv.invoice_date,
-            subtotal: inv.subtotal_cents,
-            discount: inv.discount_cents,
-            tax_amount: inv.tax_total_cents,
-            round_off: inv.round_off_cents,
-            grand_total: inv.grand_total_cents,
-            paid_amount: inv.paid_amount_cents,
-            balance_due: inv.balance_due_cents,
-            status: inv.status,
-            is_pos: inv.is_pos,
-            lines: inv.invoice_lines || []
-        }));
+        return (data || []).map(inv => {
+            const customerName = inv.customers ? inv.customers.name : 'Walk-in Retail Customer';
+            const customerPhone = inv.customers ? inv.customers.phone : '';
+            const customerGstin = inv.customers ? inv.customers.tax_identifier : '';
+
+            // Enhanced Universal Categorization
+            const categories = this.categorizeInvoice({
+                ...inv,
+                customer_name: customerName,
+                grand_total: inv.grand_total_cents,
+                paid_amount: inv.paid_amount_cents,
+                balance_due: inv.balance_due_cents,
+                lines: (inv.invoice_lines || []).map(l => ({
+                    ...l,
+                    category: l.products && l.products.categories ? l.products.categories.name : (l.products ? l.products.name : 'General')
+                }))
+            });
+
+            return {
+                id: inv.id,
+                invoice_number: inv.invoice_number,
+                customer_name: customerName,
+                customer_phone: customerPhone,
+                customer_gstin: customerGstin,
+                invoice_date: inv.invoice_date,
+                created_at: inv.created_at || inv.invoice_date,
+                subtotal: inv.subtotal_cents,
+                discount: inv.discount_cents,
+                tax_amount: inv.tax_total_cents,
+                round_off: inv.round_off_cents,
+                grand_total: inv.grand_total_cents,
+                paid_amount: inv.paid_amount_cents,
+                balance_due: inv.balance_due_cents,
+                status: inv.status,
+                is_pos: inv.is_pos,
+                payment_terms: inv.payment_terms || 'CASH',
+                lines: inv.invoice_lines || [],
+                // Classified Dimensions for Analytics & Filtering
+                category_payment: categories.payment_category,
+                category_customer: categories.customer_category,
+                category_counter: categories.counter_category,
+                category_value_tier: categories.value_tier,
+                category_settlement: categories.settlement_category,
+                category_products: categories.product_categories
+            };
+        });
+    },
+
+    categorizeInvoice(inv) {
+        // 1. Payment Method Categorization
+        const rawMethod = (inv.payment_terms || inv.payment_method || 'CASH').toUpperCase();
+        let paymentCategory = 'CASH';
+        if (rawMethod.includes('UPI') || rawMethod.includes('QR')) paymentCategory = 'UPI_QR';
+        else if (rawMethod.includes('CARD') || rawMethod.includes('POS')) paymentCategory = 'CARD';
+        else if (rawMethod.includes('SPLIT') || rawMethod.includes('COMBO')) paymentCategory = 'SPLIT_COMBO';
+        else if (rawMethod.includes('BANK') || rawMethod.includes('NET') || rawMethod.includes('TRANSFER')) paymentCategory = 'NET_BANKING';
+
+        // 2. Customer Tier Categorization
+        const custName = (inv.customer_name || '').toLowerCase();
+        let customerCategory = 'Retail Walk-in';
+        if (custName.includes('simats') || custName.includes('saveetha') || custName.includes('sse') || custName.includes('student') || custName.includes('faculty') || custName.includes('lab') || custName.includes('dept')) {
+            customerCategory = 'SIMATS Institutional';
+        } else if (inv.customer_tax_identifier || custName.includes('corp') || custName.includes('pvt') || custName.includes('ltd') || custName.includes('enterprises') || custName.includes('agency')) {
+            customerCategory = 'B2B Wholesale';
+        }
+
+        // 3. Counter Station Categorization
+        let counterCategory = 'Counter 01 - Front Desk';
+        const invNum = inv.invoice_number || '';
+        if (invNum.includes('-C2-') || (inv.notes && inv.notes.includes('Counter 02'))) {
+            counterCategory = 'Counter 02 - Express Station';
+        } else if (invNum.includes('-C3-') || (inv.notes && inv.notes.includes('Counter 03'))) {
+            counterCategory = 'Counter 03 - Lab Supply';
+        } else if (inv.notes && inv.notes.includes('Mobile')) {
+            counterCategory = 'Mobile POS Station';
+        }
+
+        // 4. Value Tier Categorization
+        const grandRupees = (inv.grand_total || inv.grand_total_cents || 0) / 100;
+        let valueTier = 'Standard (₹500 - ₹5k)';
+        if (grandRupees < 500) valueTier = 'Micro (< ₹500)';
+        else if (grandRupees > 25000) valueTier = 'Bulk Enterprise (> ₹25k)';
+        else if (grandRupees > 5000) valueTier = 'High-Value (₹5k - ₹25k)';
+
+        // 5. Settlement Category
+        let settlementCategory = 'Paid & Settled';
+        const bal = inv.balance_due !== undefined ? inv.balance_due : (inv.balance_due_cents || 0);
+        const paid = inv.paid_amount !== undefined ? inv.paid_amount : (inv.paid_amount_cents || 0);
+        if (bal > 0 && paid > 0) settlementCategory = 'Partially Paid';
+        else if (bal > 0) settlementCategory = 'Outstanding Credit';
+        else if (inv.status === 'CANCELLED' || inv.status === 'REFUNDED') settlementCategory = 'Refunded / Void';
+
+        // 6. Product Categories
+        const productCategories = new Set();
+        (inv.lines || []).forEach(l => {
+            if (l.category) productCategories.add(l.category);
+            else if (l.products && l.products.category) productCategories.add(l.products.category);
+            else if (l.products && l.products.name) productCategories.add(l.products.name.split(' ')[0]);
+        });
+
+        return {
+            payment_category: paymentCategory,
+            customer_category: customerCategory,
+            counter_category: counterCategory,
+            value_tier: valueTier,
+            settlement_category: settlementCategory,
+            product_categories: Array.from(productCategories)
+        };
+    },
+
+    // --------------------------------------------------------------------------
+    // REVENUE & SETTLED PAYMENTS PURGE / RESET OPERATIONS
+    // --------------------------------------------------------------------------
+    async clearAllBillingRecords(options = {}) {
+        const user = this.getCurrentUser();
+        if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'STORE_MANAGER') {
+            throw new Error("Unauthorized: Only Super Administrator or Store Manager can clear billing records.");
+        }
+
+        try {
+            // 1. Fetch all invoice IDs to cleanly delete cascading child lines & payments
+            const existingInvoices = await this.restRequest('invoices?select=id,invoice_number');
+            const invIds = (existingInvoices || []).map(i => i.id);
+
+            if (invIds.length > 0) {
+                // Delete payment allocations
+                await this.restRequest(`payment_allocations?invoice_id=in.(${invIds.join(',')})`, {
+                    method: 'DELETE'
+                }).catch(() => {});
+
+                // Delete payments
+                await this.restRequest(`payments?invoice_id=in.(${invIds.join(',')})`, {
+                    method: 'DELETE'
+                }).catch(() => {});
+
+                // Delete invoice lines
+                await this.restRequest(`invoice_lines?invoice_id=in.(${invIds.join(',')})`, {
+                    method: 'DELETE'
+                }).catch(() => {});
+
+                // Delete invoices
+                await this.restRequest(`invoices?id=in.(${invIds.join(',')})`, {
+                    method: 'DELETE'
+                }).catch(() => {});
+            }
+
+            // Also purge any unassigned payments in payments table
+            await this.restRequest('payments?id=not.is.null', {
+                method: 'DELETE'
+            }).catch(() => {});
+
+            // Delete sales journals
+            await this.restRequest(`journal_entries?source_document=like.INV-*`, {
+                method: 'DELETE'
+            }).catch(() => {});
+
+            // Governance audit log
+            await this.logAudit("CLEAR_BILLING_RECORDS", "INVOICE_LEDGER", "ALL", `Cleared all billed revenue and settled payments (${invIds.length} invoices purged)`);
+
+            return { success: true, count: invIds.length };
+        } catch (err) {
+            console.error("[Clear billing records error]", err);
+            throw new Error(`Failed to clear billing records: ${err.message}`);
+        }
+    },
+
+    async clearSettledPaymentsOnly() {
+        const user = this.getCurrentUser();
+        if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'STORE_MANAGER') {
+            throw new Error("Unauthorized: Only Super Administrator or Store Manager can reset settled payments.");
+        }
+
+        try {
+            // 1. Delete payment allocations
+            await this.restRequest('payment_allocations?id=not.is.null', {
+                method: 'DELETE'
+            }).catch(() => {});
+
+            // 2. Delete all payments
+            await this.restRequest('payments?id=not.is.null', {
+                method: 'DELETE'
+            }).catch(() => {});
+
+            // 3. Reset all invoices to unpaid (balance due = grand total, paid = 0)
+            const invoices = await this.restRequest('invoices?select=id,grand_total_cents');
+            for (const inv of (invoices || [])) {
+                await this.restRequest(`invoices?id=eq.${inv.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        paid_amount_cents: 0,
+                        balance_due_cents: inv.grand_total_cents,
+                        status: 'UNPAID',
+                        updated_at: new Date().toISOString()
+                    })
+                }).catch(() => {});
+            }
+
+            await this.logAudit("CLEAR_SETTLED_PAYMENTS", "PAYMENTS", "ALL", "Reset all settled payments to 0 (converted to receivables)");
+            return { success: true, count: (invoices || []).length };
+        } catch (err) {
+            console.error("[Clear settled payments error]", err);
+            throw new Error(`Failed to clear settled payments: ${err.message}`);
+        }
+    },
+
+    // --------------------------------------------------------------------------
+    // HELD / PARKED CARTS STORAGE (MULTI-CART POS NETWORK)
+    // --------------------------------------------------------------------------
+    getHeldOrders() {
+        try {
+            const raw = SafeStorage.getItem('imbs_pos_held_orders');
+            return raw ? JSON.parse(raw) : [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    saveHeldOrder(ticket) {
+        const orders = this.getHeldOrders();
+        const newTicket = {
+            id: ticket.id || `HELD-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            customer: ticket.customer,
+            items: ticket.items,
+            item_count: (ticket.items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
+            subtotal: ticket.subtotal,
+            discount_total: ticket.discount_total || 0,
+            tax_total: ticket.tax_total,
+            grand_total: ticket.grand_total,
+            counter_name: ticket.counter_name || 'Counter 01',
+            notes: ticket.notes || 'Parked transaction'
+        };
+        orders.unshift(newTicket);
+        SafeStorage.setItem('imbs_pos_held_orders', JSON.stringify(orders.slice(0, 50)));
+        return newTicket;
+    },
+
+    removeHeldOrder(orderId) {
+        const orders = this.getHeldOrders().filter(o => o.id !== orderId);
+        SafeStorage.setItem('imbs_pos_held_orders', JSON.stringify(orders));
+        return orders;
     },
 
     // --------------------------------------------------------------------------
@@ -1420,7 +1652,7 @@ const SupabaseClient = {
 
     async getPurchaseOrders() {
         const data = await this.restRequest('purchase_orders?select=id,po_number,po_date,grand_total_cents,status,notes,suppliers(name)&order=created_at.desc');
-        return data.map(po => ({
+        return (data || []).map(po => ({
             id: po.id,
             po_number: po.po_number,
             po_date: po.po_date,
@@ -1429,6 +1661,31 @@ const SupabaseClient = {
             status: po.status,
             notes: po.notes
         }));
+    },
+
+    async createPurchaseOrder(poData) {
+        const user = this.getCurrentUser();
+        const poNo = poData.po_number || `PO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${Date.now().toString().slice(-4)}`;
+        const payload = {
+            organization_id: "00000000-0000-0000-0000-000000000001",
+            branch_id: "10000000-0000-0000-0000-000000000001",
+            warehouse_id: poData.warehouse_id || "20000000-0000-0000-0000-000000000001",
+            supplier_id: poData.supplier_id || "40000000-0000-0000-0000-000000000001",
+            po_number: poNo,
+            po_date: poData.po_date || new Date().toISOString().split('T')[0],
+            subtotal_cents: Math.round(Number(poData.subtotal_cents) || 0),
+            tax_total_cents: Math.round(Number(poData.tax_total_cents) || 0),
+            grand_total_cents: Math.round(Number(poData.grand_total_cents) || 0),
+            status: poData.status || "CONFIRMED",
+            notes: poData.notes || "Automated replenishment PO",
+            created_by: user ? user.id : null
+        };
+        const res = await this.restRequest('purchase_orders', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        await this.logAudit("CREATE", "PURCHASE_ORDER", poNo, `Created PO ${poNo} for ${poData.items_count || 1} items`);
+        return res && res.length > 0 ? res[0] : payload;
     },
 
     async receiveGoods(grnData) {

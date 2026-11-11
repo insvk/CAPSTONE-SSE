@@ -12,6 +12,7 @@ console.log('===================================================================
 
 const requiredFiles = [
     'frontend/index.html',
+    'frontend/customer-display.html',
     'frontend/css/shadcn-theme.css',
     'frontend/css/pos.css',
     'frontend/css/login.css',

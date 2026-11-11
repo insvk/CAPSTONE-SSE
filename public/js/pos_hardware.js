@@ -226,8 +226,60 @@
         },
 
         // --------------------------------------------------------------------------
-        // 4. CUSTOMER-FACING DISPLAY (DUAL-SCREEN / SECONDARY LCD)
+        // 4. CUSTOMER-FACING DISPLAY (DUAL-SCREEN / SECONDARY LCD / BROADCAST BUS)
         // --------------------------------------------------------------------------
+        _bus: null,
+
+        getDisplayBus() {
+            if (!this._bus && typeof BroadcastChannel !== 'undefined') {
+                try {
+                    this._bus = new BroadcastChannel('imbs_customer_display_bus');
+                } catch (_) {}
+            }
+            return this._bus;
+        },
+
+        broadcastCustomerDisplay(payload) {
+            const store = window.StoreConfig ? window.StoreConfig.getProfile() : {};
+            const counter = window.StoreConfig ? window.StoreConfig.getActiveCounter() : { name: 'Counter 01' };
+            const cashier = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : { full_name: 'Cashier' };
+
+            const envelope = {
+                timestamp: Date.now(),
+                store: store,
+                counter: counter,
+                cashier: cashier,
+                ...payload
+            };
+
+            // 1. Broadcast via native BroadcastChannel
+            const bus = this.getDisplayBus();
+            if (bus) {
+                try {
+                    bus.postMessage(envelope);
+                } catch (_) {}
+            }
+
+            // 2. Storage event fallback for cross-window / multi-screen
+            try {
+                if (window.SafeStorage) {
+                    window.SafeStorage.setItem('imbs_cust_display_state', JSON.stringify(envelope));
+                }
+            } catch (_) {}
+
+            // 3. Direct windowRef update if opened as popup
+            if (this.config.customerDisplay.windowRef && !this.config.customerDisplay.windowRef.closed) {
+                try {
+                    if (this.config.customerDisplay.windowRef.onCustomerDisplayUpdate) {
+                        this.config.customerDisplay.windowRef.onCustomerDisplayUpdate(envelope);
+                    }
+                } catch (_) {}
+            }
+
+            // 4. In-App Mirror Preview modal update if open
+            this.updateInAppMirror(envelope);
+        },
+
         launchCustomerDisplay() {
             if (this.config.customerDisplay.windowRef && !this.config.customerDisplay.windowRef.closed) {
                 this.config.customerDisplay.windowRef.focus();
@@ -235,9 +287,9 @@
             }
 
             const store = window.StoreConfig ? window.StoreConfig.getProfile() : {};
-            const win = window.open('', 'imbs_customer_display', 'width=800,height=520,menubar=no,toolbar=no,location=no,status=no');
+            const win = window.open('', 'imbs_customer_display', 'width=960,height=620,menubar=no,toolbar=no,location=no,status=no');
             if (!win) {
-                if (window.App) window.App.showToast('Please allow popups to open Customer Display window.', 'danger');
+                if (window.App) window.App.showToast('Please allow browser popups to open Customer Display window.', 'danger');
                 return;
             }
 
@@ -250,117 +302,351 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>${store.shop_name || 'Store'} - Customer Checkout Display</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <style>
                         * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body { background: #09090b; color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-                        .header { background: #121215; padding: 16px 24px; border-bottom: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; }
-                        .store-name { font-size: 20px; font-weight: 800; color: #ffffff; }
-                        .store-sub { font-size: 12px; color: #a1a1aa; }
-                        .content { flex: 1; display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 24px; overflow: hidden; }
-                        .cart-box { background: #18181c; border: 1px solid #27272a; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; overflow: hidden; }
-                        .cart-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #a1a1aa; padding-bottom: 10px; border-bottom: 1px solid #27272a; }
-                        .items-list { flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 8px; }
-                        .cart-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #121215; border-radius: 6px; border: 1px solid #222226; }
-                        .totals-box { background: #18181c; border: 1px solid #27272a; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
-                        .payable-title { font-size: 14px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; }
-                        .payable-amount { font-size: 44px; font-weight: 900; color: #22c55e; font-family: monospace; margin: 12px 0; }
-                        .qr-card { background: #ffffff; padding: 12px; border-radius: 8px; display: inline-block; margin: 0 auto; }
-                        .footer { padding: 12px 24px; background: #121215; border-top: 1px solid #27272a; text-align: center; font-size: 12px; color: #71717a; }
+                        body { background: #070709; color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+                        
+                        /* Header */
+                        .header { background: #111115; padding: 14px 28px; border-bottom: 1px solid #222228; display: flex; justify-content: space-between; align-items: center; }
+                        .store-brand { display: flex; align-items: center; gap: 14px; }
+                        .store-logo { width: 38px; height: 38px; border-radius: 8px; background: #ffffff; padding: 3px; display: flex; align-items: center; justify-content: center; }
+                        .store-logo img { width: 100%; height: 100%; object-fit: contain; }
+                        .store-name { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; }
+                        .store-sub { font-size: 11px; color: #a1a1aa; margin-top: 1px; }
+                        .station-tag { font-family: monospace; font-size: 11px; color: #4ade80; background: rgba(34, 197, 94, 0.12); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(34, 197, 94, 0.3); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+                        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.6s infinite; }
+                        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+                        
+                        /* Layout */
+                        .content { flex: 1; display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px 28px; overflow: hidden; }
+                        
+                        /* Left Box: Item Stream */
+                        .cart-box { background: #121217; border: 1px solid #222228; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; overflow: hidden; }
+                        .cart-header { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #a1a1aa; padding-bottom: 12px; border-bottom: 1px solid #222228; display: flex; justify-content: space-between; align-items: center; }
+                        .items-list { flex: 1; overflow-y: auto; padding: 12px 0; display: flex; flex-direction: column; gap: 10px; }
+                        .cart-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: #17171e; border-radius: 8px; border: 1px solid #262630; animation: fadeIn 0.2s ease-out; }
+                        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+                        .cart-item-title { font-weight: 700; color: #ffffff; font-size: 14px; }
+                        .cart-item-meta { font-size: 11px; color: #a1a1aa; font-family: monospace; margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+                        .cart-item-price { font-weight: 800; font-family: monospace; color: #ffffff; font-size: 16px; text-align: right; }
+                        
+                        /* Right Box: Totals & QR */
+                        .summary-box { background: #121217; border: 1px solid #222228; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; }
+                        .due-header { text-align: center; }
+                        .due-label { font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.6px; }
+                        .due-amount { font-size: 48px; font-weight: 900; color: #22c55e; font-family: monospace; margin: 8px 0; text-shadow: 0 0 20px rgba(34, 197, 94, 0.25); }
+                        .savings-banner { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); color: #4ade80; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; text-align: center; margin-bottom: 14px; display: none; }
+                        
+                        .tax-breakdown { background: #17171e; border: 1px solid #262630; border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+                        .tax-row { display: flex; justify-content: space-between; color: #a1a1aa; }
+                        .tax-val { font-family: monospace; color: #ffffff; font-weight: 600; }
+                        
+                        /* Interactive QR & Tender Card */
+                        .qr-section { text-align: center; margin-top: 14px; }
+                        .qr-card { background: #ffffff; padding: 12px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); }
+                        .qr-apps-hint { font-size: 10px; color: #a1a1aa; margin-top: 8px; font-weight: 500; }
+                        
+                        /* Change Due Banner */
+                        .change-card { background: #17171e; border: 1px solid #22c55e; border-radius: 10px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
+                        .change-title { font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; }
+                        .change-val { font-size: 28px; font-weight: 900; color: #22c55e; font-family: monospace; margin-top: 4px; }
+
+                        /* Footer */
+                        .footer { padding: 12px 28px; background: #111115; border-top: 1px solid #222228; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #71717a; }
+                        .marquee-text { color: #60a5fa; font-weight: 600; }
                     </style>
                 </head>
                 <body>
                     <div class="header">
-                        <div>
-                            <div class="store-name" id="disp-store-name">${store.shop_name || 'SSE ENTERPRISE'}</div>
-                            <div class="store-sub" id="disp-store-sub">${store.tagline || 'Welcome to our store'}</div>
-                        </div>
-                        <div style="font-family: monospace; font-size: 12px; color: #60a5fa; background: rgba(59,130,246,0.15); padding: 4px 10px; border-radius: 4px;">
-                            Terminal Active • Counter 01
-                        </div>
-                    </div>
-                    <div class="content">
-                        <div class="cart-box">
-                            <div class="cart-header">Your Items In Cart</div>
-                            <div class="items-list" id="disp-items-list">
-                                <div style="text-align: center; padding: 60px 0; color: #71717a; font-size: 14px;">Next item will appear here...</div>
+                        <div class="store-brand">
+                            <div class="store-logo">
+                                <img src="/img/simats_logo.png" alt="Logo" onerror="this.parentElement.innerText='SSE'" />
+                            </div>
+                            <div>
+                                <div class="store-name" id="disp-store-name">${store.shop_name || 'SSE ENTERPRISE HUB'}</div>
+                                <div class="store-sub" id="disp-store-sub">${store.tagline || 'High-Performance Multi-Counter Retail'}</div>
                             </div>
                         </div>
-                        <div class="totals-box">
-                            <div>
-                                <div class="payable-title">Total Amount Due</div>
-                                <div class="payable-amount" id="disp-grand-total">₹0.00</div>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a1a1aa; margin-top: 8px;">
-                                    <span>Taxable: <strong id="disp-subtotal" style="color: #fff;">₹0.00</strong></span>
-                                    <span>GST (18%): <strong id="disp-tax" style="color: #60a5fa;">₹0.00</strong></span>
+                        <div class="station-tag">
+                            <span class="pulse-dot"></span>
+                            <span id="disp-counter-badge">Active Station • Counter 01</span>
+                        </div>
+                    </div>
+
+                    <div class="content">
+                        <!-- Left: Itemized Stream -->
+                        <div class="cart-box">
+                            <div class="cart-header">
+                                <span>Itemized Bill Stream</span>
+                                <span id="disp-items-count" style="color: #60a5fa; font-family: monospace;">0 items</span>
+                            </div>
+                            <div class="items-list" id="disp-items-list">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #71717a; text-align: center; gap: 10px;">
+                                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                    </svg>
+                                    <div style="font-size: 14px; font-weight: 600; color: #a1a1aa;">Welcome! Next scanned item will appear here.</div>
+                                    <div style="font-size: 11px; color: #71717a;">Show SIMATS Student or Faculty ID card for concession.</div>
                                 </div>
                             </div>
+                            <div id="disp-customer-strip" style="padding-top: 10px; border-top: 1px solid #222228; font-size: 12px; color: #a1a1aa; display: flex; justify-content: space-between;">
+                                <span>Customer: <strong id="disp-customer-name" style="color: #fff;">Walk-in Customer</strong></span>
+                                <span id="disp-customer-tier" style="color: #4ade80; font-weight: 700;">Retail Tier</span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Totals, Discounts & Live UPI QR -->
+                        <div class="summary-box">
                             <div>
-                                <div style="font-size: 11px; color: #a1a1aa; margin-bottom: 8px;">Scan with GooglePay, PhonePe, Paytm or BHIM</div>
-                                <div class="qr-card" id="disp-upi-qr"></div>
+                                <div class="savings-banner" id="disp-savings-banner">
+                                    Total Savings Today: ₹0.00
+                                </div>
+                                <div class="due-header">
+                                    <div class="due-label">NET PAYABLE AMOUNT</div>
+                                    <div class="due-amount" id="disp-grand-total">₹0.00</div>
+                                </div>
+                                <div class="tax-breakdown">
+                                    <div class="tax-row">
+                                        <span>Taxable Value:</span>
+                                        <span class="tax-val" id="disp-subtotal">₹0.00</span>
+                                    </div>
+                                    <div class="tax-row">
+                                        <span>GST (CGST 9% + SGST 9%):</span>
+                                        <span class="tax-val" id="disp-tax" style="color: #60a5fa;">₹0.00</span>
+                                    </div>
+                                    <div class="tax-row" id="disp-discount-row" style="display: none;">
+                                        <span>Special Discount:</span>
+                                        <span class="tax-val" id="disp-discount" style="color: #4ade80;">-₹0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="change-card" id="disp-change-box">
+                                <div class="change-title">Change Due to Return</div>
+                                <div class="change-val" id="disp-change-val">₹0.00</div>
+                            </div>
+
+                            <div class="qr-section">
+                                <div style="font-size: 11px; font-weight: 700; color: #e4e4e7; margin-bottom: 8px; text-transform: uppercase;">
+                                    Scan & Pay with Any UPI App
+                                </div>
+                                <div class="qr-card" id="disp-upi-qr">
+                                    <!-- QR Code Injected -->
+                                </div>
+                                <div class="qr-apps-hint">
+                                    GPay • PhonePe • Paytm • BHIM • Cred • NetBanking
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="footer" id="disp-footer">${store.footer_note || 'Thank you for shopping with us!'}</div>
+
+                    <div class="footer">
+                        <div class="marquee-text">
+                            SSE Enterprise High-Speed Cloud POS • 100% Tax Invoices with Instant Digital e-Receipts
+                        </div>
+                        <div id="disp-live-clock" style="font-family: monospace; color: #a1a1aa;">--:--:--</div>
+                    </div>
+
+                    <script>
+                        // Live Clock
+                        setInterval(() => {
+                            const el = document.getElementById('disp-live-clock');
+                            if (el) el.innerText = new Date().toLocaleTimeString();
+                        }, 1000);
+
+                        // Broadcast Receiver
+                        function applyState(data) {
+                            if (!data) return;
+                            if (data.store && data.store.shop_name) {
+                                document.getElementById('disp-store-name').innerText = data.store.shop_name;
+                            }
+                            if (data.counter && data.counter.name) {
+                                document.getElementById('disp-counter-badge').innerText = 'Active Station • ' + data.counter.name;
+                            }
+                            if (data.customer) {
+                                document.getElementById('disp-customer-name').innerText = data.customer.name || 'Walk-in Cash';
+                                document.getElementById('disp-customer-tier').innerText = data.customer.tier || 'Retail Tier';
+                            }
+
+                            const q = data.quotation || {};
+                            const grand = (q.grand_total !== undefined ? q.grand_total : 0) / 100;
+                            const sub = (q.subtotal !== undefined ? q.subtotal : 0) / 100;
+                            const tax = (q.tax_total !== undefined ? q.tax_total : 0) / 100;
+                            const disc = (q.discount_amount !== undefined ? q.discount_amount : (data.discount_total || 0)) / 100;
+
+                            document.getElementById('disp-grand-total').innerText = '₹' + grand.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                            document.getElementById('disp-subtotal').innerText = '₹' + sub.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                            document.getElementById('disp-tax').innerText = '₹' + tax.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+                            const savingsEl = document.getElementById('disp-savings-banner');
+                            if (disc > 0) {
+                                savingsEl.style.display = 'block';
+                                savingsEl.innerText = 'Total Savings Today: ₹' + disc.toFixed(2);
+                                document.getElementById('disp-discount-row').style.display = 'flex';
+                                document.getElementById('disp-discount').innerText = '-₹' + disc.toFixed(2);
+                            } else {
+                                savingsEl.style.display = 'none';
+                                document.getElementById('disp-discount-row').style.display = 'none';
+                            }
+
+                            // Items
+                            const items = data.cart || [];
+                            const listEl = document.getElementById('disp-items-list');
+                            const countEl = document.getElementById('disp-items-count');
+                            countEl.innerText = items.reduce((s, i) => s + (Number(i.quantity) || 1), 0) + ' items';
+
+                            if (items.length === 0) {
+                                listEl.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #71717a; text-align: center; gap: 10px;"><div style="font-size: 14px; font-weight: 600; color: #a1a1aa;">Welcome! Next scanned item will appear here.</div><div style="font-size: 11px; color: #71717a;">Show SIMATS Student or Faculty ID card for concession.</div></div>';
+                            } else {
+                                listEl.innerHTML = items.map(i => {
+                                    const qty = Number(i.quantity) || 1;
+                                    const rate = ((Number(i.unit_price) || 0) / 100).toFixed(2);
+                                    const lineTot = ((qty * (Number(i.unit_price) || 0)) / 100).toFixed(2);
+                                    return '<div class="cart-row"><div><div class="cart-item-title">' + (i.name || 'Item') + '</div><div class="cart-item-meta"><span>Qty: ' + qty + ' × ₹' + rate + '</span><span>• SKU: ' + (i.sku || 'SKU') + '</span></div></div><div class="cart-item-price">₹' + lineTot + '</div></div>';
+                                }).join('');
+                            }
+
+                            // Change due
+                            const changeBox = document.getElementById('disp-change-box');
+                            const changeVal = document.getElementById('disp-change-val');
+                            if (data.change_due_cents && data.change_due_cents > 0) {
+                                changeBox.style.display = 'block';
+                                changeVal.innerText = '₹' + (data.change_due_cents / 100).toFixed(2);
+                            } else {
+                                changeBox.style.display = 'none';
+                            }
+
+                            // QR
+                            if (data.qrSvg) {
+                                document.getElementById('disp-upi-qr').innerHTML = data.qrSvg;
+                            }
+                        }
+
+                        window.onCustomerDisplayUpdate = applyState;
+
+                        try {
+                            const channel = new BroadcastChannel('imbs_customer_display_bus');
+                            channel.onmessage = (e) => applyState(e.data);
+                        } catch (_) {}
+
+                        window.addEventListener('storage', (e) => {
+                            if (e.key === 'imbs_cust_display_state' && e.newValue) {
+                                try { applyState(JSON.parse(e.newValue)); } catch (_) {}
+                            }
+                        });
+                    <\/script>
                 </body>
                 </html>
             `;
             win.document.write(html);
             win.document.close();
 
-            if (window.PosView && window.PosView.cart) {
-                this.updateCustomerDisplay(window.PosView.cart);
+            if (window.PosView && window.PosView.syncCustomerDisplay) {
+                window.PosView.syncCustomerDisplay();
             }
         },
 
         updateCustomerDisplay(cartItems = []) {
-            const win = this.config.customerDisplay.windowRef;
-            if (!win || win.closed) {
-                this.config.customerDisplay.active = false;
+            if (window.PosView && window.PosView.syncCustomerDisplay) {
+                window.PosView.syncCustomerDisplay();
+            }
+        },
+
+        // --------------------------------------------------------------------------
+        // IN-APP CUSTOMER MIRROR PREVIEW MODAL
+        // --------------------------------------------------------------------------
+        showInAppCustomerMirror() {
+            const existing = document.getElementById('modal-pos-customer-mirror');
+            if (existing) {
+                existing.style.display = 'flex';
+                if (window.PosView && window.PosView.syncCustomerDisplay) {
+                    window.PosView.syncCustomerDisplay();
+                }
                 return;
             }
 
-            try {
-                const store = window.StoreConfig ? window.StoreConfig.getProfile() : {};
-                const listEl = win.document.getElementById('disp-items-list');
-                const totalEl = win.document.getElementById('disp-grand-total');
-                const subEl = win.document.getElementById('disp-subtotal');
-                const taxEl = win.document.getElementById('disp-tax');
-                const qrEl = win.document.getElementById('disp-upi-qr');
+            const modal = document.createElement('div');
+            modal.id = 'modal-pos-customer-mirror';
+            modal.className = 'shadcn-modal-backdrop';
+            modal.style.display = 'flex';
 
-                let subtotal = 0;
-                for (const item of cartItems) {
-                    subtotal += (item.quantity * item.unit_price);
-                }
-                const tax = Math.round(subtotal * 0.18);
-                const grand = subtotal + tax;
+            modal.innerHTML = `
+                <div class="shadcn-modal-dialog" style="max-width: 680px; background: #0c0c0f; border-color: #272730;">
+                    <div class="shadcn-modal-header" style="border-bottom: 1px solid #1f1f26;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
+                            <h3 class="shadcn-modal-title" style="font-size: 14px;">Customer Facing Screen (Live Mirror Preview)</h3>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="shadcn-btn-secondary" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="PosHardware.launchCustomerDisplay()">
+                                Pop-Out to 2nd Screen
+                            </button>
+                            <button class="shadcn-modal-close" onclick="document.getElementById('modal-pos-customer-mirror').style.display='none'">&times;</button>
+                        </div>
+                    </div>
+                    <div class="shadcn-modal-body" style="padding: 16px; background: #08080a;" id="mirror-preview-body">
+                        <!-- Mirror content will update dynamically -->
+                    </div>
+                    <div class="shadcn-modal-footer" style="border-top: 1px solid #1f1f26; font-size: 11px; color: var(--text-muted); justify-content: space-between;">
+                        <span>BroadcastChannel synced in real-time with register.</span>
+                        <button type="button" class="shadcn-btn-secondary" onclick="document.getElementById('modal-pos-customer-mirror').style.display='none'">
+                            Close Mirror
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
 
-                if (totalEl) totalEl.innerText = `₹${(grand / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-                if (subEl) subEl.innerText = `₹${(subtotal / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-                if (taxEl) taxEl.innerText = `₹${(tax / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            if (window.PosView && window.PosView.syncCustomerDisplay) {
+                window.PosView.syncCustomerDisplay();
+            }
+        },
 
-                if (listEl) {
-                    if (cartItems.length === 0) {
-                        listEl.innerHTML = `<div style="text-align: center; padding: 60px 0; color: #71717a; font-size: 14px;">Next item will appear here...</div>`;
-                    } else {
-                        listEl.innerHTML = cartItems.map(item => `
-                            <div class="cart-row">
+        updateInAppMirror(data) {
+            const body = document.getElementById('mirror-preview-body');
+            if (!body) return;
+
+            const q = data.quotation || {};
+            const grand = ((q.grand_total !== undefined ? q.grand_total : 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const sub = ((q.subtotal !== undefined ? q.subtotal : 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const tax = ((q.tax_total !== undefined ? q.tax_total : 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const items = data.cart || [];
+
+            body.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 220px; gap: 14px;">
+                    <div style="background: #121217; border: 1px solid #222228; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; max-height: 280px; overflow-y: auto;">
+                        <div style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #222228; padding-bottom: 4px;">
+                            Active Cart (${items.length} items)
+                        </div>
+                        ${items.length === 0 ? `
+                            <div style="color: #71717a; text-align: center; padding: 40px 0; font-size: 12px;">Cart is empty</div>
+                        ` : items.map(i => `
+                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a20; font-size: 12px;">
                                 <div>
-                                    <div style="font-weight: 700; color: #ffffff; font-size: 13px;">${item.name}</div>
-                                    <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">Qty: ${item.quantity} × ₹${(item.unit_price / 100).toFixed(2)}</div>
+                                    <div style="color: #fff; font-weight: 600;">${i.name}</div>
+                                    <div style="color: #71717a; font-size: 10px;">${i.quantity} × ₹${((i.unit_price || 0) / 100).toFixed(2)}</div>
                                 </div>
-                                <div style="font-weight: 800; font-family: monospace; color: #ffffff; font-size: 14px;">
-                                    ₹${((item.quantity * item.unit_price) / 100).toFixed(2)}
+                                <div style="color: #4ade80; font-family: monospace; font-weight: 700;">
+                                    ₹${(((i.quantity || 1) * (i.unit_price || 0)) / 100).toFixed(2)}
                                 </div>
                             </div>
-                        `).join('');
-                    }
-                }
+                        `).join('')}
+                    </div>
 
-                if (qrEl && window.BarcodeQR) {
-                    const upiUrl = `upi://pay?pa=${store.upi_id || 'sse.retail@icici'}&pn=${encodeURIComponent(store.shop_name || 'SSE')}&am=${(grand / 100).toFixed(2)}&cu=INR`;
-                    qrEl.innerHTML = window.BarcodeQR.qr(upiUrl, { size: 100 });
-                }
-            } catch (_) {}
+                    <div style="background: #121217; border: 1px solid #222228; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 10px; font-weight: 700; color: #a1a1aa;">NET AMOUNT DUE</div>
+                            <div style="font-size: 28px; font-weight: 900; color: #22c55e; font-family: monospace; margin: 4px 0;">₹${grand}</div>
+                            <div style="font-size: 10px; color: #71717a;">Taxable: ₹${sub} • GST: ₹${tax}</div>
+                        </div>
+                        <div style="margin-top: 10px; background: #fff; padding: 6px; border-radius: 6px; display: inline-block; margin: 10px auto 0 auto;">
+                            ${data.qrSvg || ''}
+                        </div>
+                        <div style="font-size: 9px; color: #71717a; margin-top: 4px;">Dynamic NPCI UPI QR</div>
+                    </div>
+                </div>
+            `;
         },
 
         // --------------------------------------------------------------------------
