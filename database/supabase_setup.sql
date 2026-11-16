@@ -112,6 +112,7 @@ CREATE TABLE user_profiles (
     full_name VARCHAR(255) NOT NULL,
     job_title VARCHAR(128) DEFAULT 'Staff Member',
     avatar_url TEXT,
+    password_hash VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

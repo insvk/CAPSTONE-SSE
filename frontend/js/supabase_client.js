@@ -95,6 +95,82 @@ const SupabaseClient = {
         return text ? JSON.parse(text) : null;
     },
 
+    sha256(ascii) {
+        function rightRotate(value, amount) {
+            return (value >>> amount) | (value << (32 - amount));
+        }
+        var mathPow = Math.pow;
+        var maxWord = mathPow(2, 32);
+        var lengthProperty = 'length';
+        var i, j;
+        var result = '';
+        var words = [];
+        var asciiBitLength = ascii[lengthProperty] * 8;
+        var hash = [];
+        var k = [];
+        var primeCounter = 0;
+        var isComposite = {};
+        for (var candidate = 2; primeCounter < 64; candidate++) {
+            if (!isComposite[candidate]) {
+                for (i = 0; i < 313; i += candidate) {
+                    isComposite[i] = candidate;
+                }
+                hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+                k[primeCounter++] = (mathPow(candidate, 1/3) * maxWord) | 0;
+            }
+        }
+        hash = hash.slice(0, 8);
+        ascii += '\x80';
+        while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+        for (i = 0; i < ascii[lengthProperty]; i++) {
+            j = ascii.charCodeAt(i);
+            if (j >> 8) return;
+            words[i >> 2] |= j << ((3 - i) % 4) * 8;
+        }
+        words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
+        words[words[lengthProperty]] = (asciiBitLength) | 0;
+        for (j = 0; j < words[lengthProperty];) {
+            var w = words.slice(j, j += 16);
+            var oldHash = hash;
+            hash = hash.slice(0, 8);
+            for (i = 0; i < 64; i++) {
+                var i2 = i + j;
+                var w15 = w[i - 15], w2 = w[i - 2];
+                var a = hash[0], e = hash[4];
+                var temp1 = hash[7]
+                    + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                    + ((e & hash[5]) ^ ((~e) & hash[6]))
+                    + k[i]
+                    + (w[i] = (i < 16) ? w[i] : (
+                            w[i - 16]
+                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                            + w[i - 7]
+                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                        ) | 0
+                    );
+                var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                    + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+                hash = [(temp1 + temp2) | 0].concat(hash);
+                hash[4] = (hash[4] + temp1) | 0;
+            }
+            for (i = 0; i < 8; i++) {
+                hash[i] = (hash[i] + oldHash[i]) | 0;
+            }
+        }
+        for (i = 0; i < 8; i++) {
+            for (var b = 3; b >= 0; b--) {
+                var byte = (hash[i] >> (8 * b)) & 255;
+                result += (byte < 16 ? '0' : '') + byte.toString(16);
+            }
+        }
+        return result;
+    },
+
+    hashPassword(password) {
+        if (!password) return '';
+        return this.sha256('imbs_salt_v1:' + password);
+    },
+
     // --------------------------------------------------------------------------
     // AUTHENTICATION & SESSION (RBAC Enforced)
     // --------------------------------------------------------------------------
@@ -129,11 +205,20 @@ const SupabaseClient = {
 
         // 1. Query Supabase PostgreSQL for verified user and assigned role
         try {
-            const query = `user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,full_name,email,job_title,avatar_url,organization_id,branch_id,user_roles(roles(code,name))`;
+            const query = `user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,full_name,email,job_title,avatar_url,password_hash,organization_id,branch_id,user_roles(roles(code,name))`;
             const users = await this.restRequest(query);
 
             if (users && users.length > 0) {
                 const u = users[0];
+
+                // Verify cloud password if password_hash is set in Supabase
+                if (u.password_hash && password !== 'GoogleOAuth2' && password !== 'PasskeyAuth') {
+                    const enteredHash = this.hashPassword(password);
+                    if (enteredHash !== u.password_hash) {
+                        throw new Error(`Incorrect password entered for ${u.email}. If your administrator recently changed your password, please use the new password.`);
+                    }
+                }
+
                 let roleCode = 'SUPER_ADMIN';
                 let roleName = 'Super Administrator';
                 if (u.user_roles && u.user_roles.length > 0 && u.user_roles[0].roles) {
@@ -157,6 +242,9 @@ const SupabaseClient = {
                 return authUser;
             }
         } catch (dbErr) {
+            if (dbErr.message && dbErr.message.includes('Incorrect password entered')) {
+                throw dbErr;
+            }
             console.warn("[Database auth query warning, checking RBAC defaults]", dbErr);
         }
 
@@ -317,6 +405,9 @@ const SupabaseClient = {
         if (data.job_title !== undefined) payload.job_title = data.job_title.trim();
         if (data.avatar_url !== undefined) payload.avatar_url = data.avatar_url ? data.avatar_url.trim() : null;
         if (data.is_active !== undefined) payload.is_active = Boolean(data.is_active);
+        if (data.password !== undefined && data.password.trim()) {
+            payload.password_hash = this.hashPassword(data.password.trim());
+        }
         payload.updated_at = new Date().toISOString();
 
         const res = await this.restRequest(`user_profiles?id=eq.${encodeURIComponent(userId)}`, {
@@ -365,6 +456,28 @@ const SupabaseClient = {
         return res && res.length > 0 ? res[0] : payload;
     },
 
+    async updateUserPassword(userId, newPassword) {
+        if (!newPassword || newPassword.trim().length < 4) {
+            throw new Error("Password must be at least 4 characters long.");
+        }
+        const pHash = this.hashPassword(newPassword.trim());
+        const payload = {
+            password_hash: pHash,
+            updated_at: new Date().toISOString()
+        };
+
+        const res = await this.restRequest(`user_profiles?id=eq.${encodeURIComponent(userId)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+        });
+
+        const currentUser = this.getCurrentUser();
+        const actorName = currentUser ? currentUser.full_name : 'Admin';
+        await this.logAudit("PASSWORD_CHANGE", "USER_PROFILE", userId, `Password modified by ${actorName} in Supabase Cloud PostgreSQL`);
+
+        return res && res.length > 0 ? res[0] : payload;
+    },
+
     async createStaff(data) {
         const userId = `30000000-0000-0000-0000-${Date.now().toString().slice(-12).padStart(12, '0')}`;
         const profilePayload = {
@@ -375,6 +488,7 @@ const SupabaseClient = {
             full_name: data.full_name.trim(),
             job_title: data.job_title || "Staff Member",
             avatar_url: data.avatar_url ? data.avatar_url.trim() : null,
+            password_hash: (data.password && data.password.trim()) ? this.hashPassword(data.password.trim()) : this.hashPassword('Password@123'),
             is_active: true
         };
         const res = await this.restRequest('user_profiles', {

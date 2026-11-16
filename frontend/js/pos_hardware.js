@@ -234,6 +234,16 @@
             if (!this._bus && typeof BroadcastChannel !== 'undefined') {
                 try {
                     this._bus = new BroadcastChannel('imbs_customer_display_bus');
+                    this._bus.onmessage = (e) => {
+                        if (e.data && e.data.type === 'CUSTOMER_RATING') {
+                            if (window.App && window.App.showToast) {
+                                window.App.showToast(`Customer rated checkout experience: ${e.data.rating}/5 Stars!`, 'success');
+                            }
+                            if (window.SupabaseClient && window.SupabaseClient.logAudit) {
+                                window.SupabaseClient.logAudit('CUSTOMER_RATING', 'POS_REGISTER', `RATING_${e.data.rating}`, `Customer gave ${e.data.rating} star checkout rating`);
+                            }
+                        }
+                    };
                 } catch (_) {}
             }
             return this._bus;

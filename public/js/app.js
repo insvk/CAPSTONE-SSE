@@ -115,6 +115,20 @@ const App = {
         if (menuRole) menuRole.innerText = role;
     },
 
+    openChangeMyPasswordModal() {
+        this.closeUserMenu();
+        const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        if (!user) return;
+        if (window.StaffView && window.StaffView.showPasswordModal) {
+            if (!window.StaffView.staffList || window.StaffView.staffList.length === 0) {
+                window.StaffView.staffList = [user];
+            } else if (!window.StaffView.staffList.some(s => s.id === user.id)) {
+                window.StaffView.staffList.push(user);
+            }
+            window.StaffView.showPasswordModal(user.id);
+        }
+    },
+
     openEditMyProfileModal() {
         this.closeUserMenu();
         const user = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
@@ -187,13 +201,19 @@ const App = {
         const fullName = document.getElementById('my-profile-name')?.value.trim();
         const jobTitle = document.getElementById('my-profile-title')?.value.trim();
         const avatarUrl = document.getElementById('my-profile-avatar-url')?.value.trim();
+        const newPassword = document.getElementById('my-profile-password')?.value.trim();
 
         try {
-            await window.SupabaseClient.updateUserProfile(user.id, {
+            const updatePayload = {
                 full_name: fullName,
                 job_title: jobTitle,
                 avatar_url: avatarUrl
-            });
+            };
+            if (newPassword && newPassword.length >= 4) {
+                updatePayload.password = newPassword;
+            }
+
+            await window.SupabaseClient.updateUserProfile(user.id, updatePayload);
 
             this.closeEditMyProfileModal();
             this.showToast('Profile and avatar updated in Supabase cloud!', 'success');

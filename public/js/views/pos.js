@@ -1,7 +1,10 @@
 /**
  * ==============================================================================
  * CSA0201-B-CAPSTONE-IMBS :: Enterprise High-Speed POS Billing Register (MAX GOD-TIER)
+ * - Multi-Cart Simultaneous Registers (Cart 1, Cart 2, Cart 3, Cart 4 with Ctrl+1..4)
  * - Dual-Screen & Pop-Out Customer Facing Pole Display with BroadcastChannel
+ * - Live Camera Barcode Scanner Imager (Webcam / USB Camera Barcode Detector)
+ * - Sales Returns, Exchanges & Credit Note Processing Suite
  * - Multi-Payment Split Tender (Cash + UPI + Card + Credit Ledger)
  * - Instant Currency Denominations Calculator & High-Contrast Change Return
  * - Multi-Cart Park & Recall (Held Orders Drawer & Hold Tickets)
@@ -17,32 +20,37 @@
 const PosView = {
     products: [],
     customers: [],
-    cart: [],
-    isInterState: false,
+    
+    // Multi-Cart 4-Slot Simultaneous Registers
+    carts: [
+        { id: 1, name: 'Register 1', cart: [], customer: { id: "80000000-0000-0000-0000-000000000003", name: "Walk-in Retail Cash Customer", phone: "", tier: "Retail Regular", loyalty_points: 0, is_verified: false }, promo: null, promoBps: 0, redeemedPoints: 0, isInterState: false },
+        { id: 2, name: 'Register 2', cart: [], customer: { id: "80000000-0000-0000-0000-000000000003", name: "Walk-in Retail Cash Customer", phone: "", tier: "Retail Regular", loyalty_points: 0, is_verified: false }, promo: null, promoBps: 0, redeemedPoints: 0, isInterState: false },
+        { id: 3, name: 'Register 3', cart: [], customer: { id: "80000000-0000-0000-0000-000000000003", name: "Walk-in Retail Cash Customer", phone: "", tier: "Retail Regular", loyalty_points: 0, is_verified: false }, promo: null, promoBps: 0, redeemedPoints: 0, isInterState: false },
+        { id: 4, name: 'Register 4', cart: [], customer: { id: "80000000-0000-0000-0000-000000000003", name: "Walk-in Retail Cash Customer", phone: "", tier: "Retail Regular", loyalty_points: 0, is_verified: false }, promo: null, promoBps: 0, redeemedPoints: 0, isInterState: false }
+    ],
+    activeCartIdx: 0,
+
+    get cart() { return this.carts[this.activeCartIdx].cart; },
+    set cart(val) { this.carts[this.activeCartIdx].cart = val; },
+    get currentCustomer() { return this.carts[this.activeCartIdx].customer; },
+    set currentCustomer(val) { this.carts[this.activeCartIdx].customer = val; },
+    get activePromo() { return this.carts[this.activeCartIdx].promo; },
+    set activePromo(val) { this.carts[this.activeCartIdx].promo = val; },
+    get promoDiscountBps() { return this.carts[this.activeCartIdx].promoBps; },
+    set promoDiscountBps(val) { this.carts[this.activeCartIdx].promoBps = val; },
+    get redeemedPoints() { return this.carts[this.activeCartIdx].redeemedPoints; },
+    set redeemedPoints(val) { this.carts[this.activeCartIdx].redeemedPoints = val; },
+    get isInterState() { return this.carts[this.activeCartIdx].isInterState; },
+    set isInterState(val) { this.carts[this.activeCartIdx].isInterState = val; },
+
     hasManagerOverride: false,
     activeCategory: 'ALL',
-    currentCustomer: {
-        id: "80000000-0000-0000-0000-000000000003",
-        name: "Walk-in Retail Cash Customer",
-        phone: "",
-        tier: "Retail Regular",
-        loyalty_points: 0,
-        is_verified: false
-    },
     activeCounter: null,
     lastInvoice: null,
-    activePromo: null,
-    promoDiscountBps: 0,
-    redeemedPoints: 0,
     checkoutMode: 'SINGLE', // 'SINGLE' | 'SPLIT'
-    splitTender: {
-        cash: 0,
-        upi: 0,
-        card: 0,
-        credit: 0
-    },
+    splitTender: { cash: 0, upi: 0, card: 0, credit: 0 },
     activeReceiptFormat: '80mm', // '80mm' | '58mm' | 'A4'
-    isExpressMode: false,
+    cameraStream: null,
 
     async render(container) {
         container.innerHTML = `
@@ -84,15 +92,15 @@ const PosView = {
 
         container.innerHTML = `
             <!-- Top POS Station Control Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 18px; background: #121215; border: 1px solid #222226; border-radius: 8px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 10px 16px; background: #121215; border: 1px solid #222226; border-radius: 8px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 34px; height: 34px; border-radius: 6px; background: #22c55e; color: #09090b; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <div style="width: 32px; height: 32px; border-radius: 6px; background: #22c55e; color: #09090b; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                     </div>
                     <div>
                         <div style="font-size: 14px; font-weight: 700; color: #ffffff;">${storeProfile.shop_name}</div>
                         <div style="font-size: 11px; color: var(--text-muted);">
-                            GSTIN: <span style="font-family: monospace; color: #a1a1aa;">${storeProfile.gstin}</span> • POS Terminal
+                            GSTIN: <span style="font-family: monospace; color: #a1a1aa;">${storeProfile.gstin}</span> • POS Station
                         </div>
                     </div>
                 </div>
@@ -102,7 +110,7 @@ const PosView = {
                     <!-- Counter Switcher -->
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Station:</span>
-                        <select id="pos-counter-select" class="shadcn-select" style="width: 190px; height: 32px; font-size: 12px; font-weight: 600;" onchange="PosView.switchCounter(this.value)">
+                        <select id="pos-counter-select" class="shadcn-select" style="width: 170px; height: 30px; font-size: 11.5px; font-weight: 600;" onchange="PosView.switchCounter(this.value)">
                             ${counters.map(c => `
                                 <option value="${c.id}" ${c.id === this.activeCounter.id ? 'selected' : ''}>
                                     ${c.name}
@@ -118,25 +126,51 @@ const PosView = {
                     </button>
 
                     <!-- In-App Mirror Preview Button -->
-                    <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="PosHardware.showInAppCustomerMirror()" title="Preview what the customer sees on single monitor">
+                    <button class="shadcn-btn-secondary" style="height: 30px; padding: 0 9px; font-size: 11.5px;" onclick="PosHardware.showInAppCustomerMirror()" title="Preview what customer sees on single monitor">
                         Mirror Preview
                     </button>
 
+                    <!-- Sales Returns & Refunds Modal -->
+                    <button class="shadcn-btn-secondary" style="height: 30px; padding: 0 9px; font-size: 11.5px; color: #f59e0b;" onclick="PosView.openSalesReturnModal()" title="Process Sales Return / Exchange / Credit Note">
+                        Return [F6]
+                    </button>
+
                     <!-- Parked Orders Drawer Toggle -->
-                    <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px; position: relative;" onclick="PosView.openHeldOrdersModal()" title="View Held / Parked Carts">
+                    <button class="shadcn-btn-secondary" style="height: 30px; padding: 0 9px; font-size: 11.5px; position: relative;" onclick="PosView.openHeldOrdersModal()" title="View Held / Parked Carts">
                         Parked Carts
-                        <span id="pos-held-count-badge" class="shadcn-badge blue" style="margin-left: 4px; padding: 1px 6px; font-size: 10px;">${heldOrders.length}</span>
+                        <span id="pos-held-count-badge" class="shadcn-badge blue" style="margin-left: 4px; padding: 1px 5px; font-size: 10px;">${heldOrders.length}</span>
                     </button>
 
                     <!-- Hardware Peripherals -->
-                    <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="PosHardware.showHardwareModal()" title="Configure Printer, Cash Drawer & Scanner">
+                    <button class="shadcn-btn-secondary" style="height: 30px; padding: 0 9px; font-size: 11.5px;" onclick="PosHardware.showHardwareModal()" title="Configure Printer, Cash Drawer & Scanner">
                         Hardware
                     </button>
 
                     <!-- Store Profile Details -->
-                    <button class="shadcn-btn-secondary" style="height: 32px; padding: 0 10px; font-size: 12px;" onclick="App.openStoreProfileModal()" title="Configure Shop Name, Address, GSTIN, UPI on Bill">
+                    <button class="shadcn-btn-secondary" style="height: 30px; padding: 0 9px; font-size: 11.5px;" onclick="App.openStoreProfileModal()" title="Configure Shop Name, Address, GSTIN, UPI on Bill">
                         Store Profile
                     </button>
+                </div>
+            </div>
+
+            <!-- MULTI-CART REGISTER SLOTS BAR (Simultaneous 4-Customer Billing) -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; background: #0c0c10; padding: 6px 12px; border: 1px solid #1f1f26; border-radius: 8px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; margin-right: 4px;">Active Cart:</span>
+                    ${this.carts.map((c, idx) => {
+                        const count = c.cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0);
+                        const gross = c.cart.reduce((s, i) => s + ((Number(i.quantity) || 1) * (i.unit_price || 0)), 0);
+                        const isActive = idx === this.activeCartIdx;
+                        return `
+                            <button class="shadcn-btn-secondary ${isActive ? 'active' : ''}" style="${isActive ? 'background: #2563eb; color: #fff; border-color: #2563eb;' : 'background: #141418;'} height: 28px; padding: 0 10px; font-size: 11px; display: flex; align-items: center; gap: 6px;" onclick="PosView.switchCartSlot(${idx})">
+                                <strong>Cart ${idx + 1}</strong>
+                                <span style="font-family: monospace; font-size: 10px; opacity: 0.85;">(${count} items ${gross > 0 ? `• ₹${(gross/100).toFixed(0)}` : ''})</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                    Switch register slots anytime using <span style="font-family: monospace; color: #60a5fa;">Ctrl+1..4</span>
                 </div>
             </div>
 
@@ -144,17 +178,21 @@ const PosView = {
             <div class="pos-container">
                 <!-- Left Column: Catalog & Barcode Scanner Panel -->
                 <div class="pos-catalog-panel">
-                    <!-- High-Speed Barcode & Search Bar -->
-                    <div style="display: grid; grid-template-columns: 1fr 180px 100px; gap: 8px;">
+                    <!-- High-Speed Barcode, Live Camera Scanner & Search Bar -->
+                    <div style="display: grid; grid-template-columns: 1fr 120px 180px 90px; gap: 8px;">
                         <div style="position: relative;">
-                            <input type="text" id="pos-barcode-scanner" class="shadcn-input" placeholder="Scan Barcode (EAN-13) or SKU & press Enter... [F2]" style="height: 42px; font-size: 13px; padding-left: 36px; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);" onkeydown="PosView.handleBarcodeKeydown(event)" autofocus />
-                            <svg style="position: absolute; left: 12px; top: 13px; color: #3b82f6;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <input type="text" id="pos-barcode-scanner" class="shadcn-input" placeholder="Scan Barcode or SKU & press Enter... [F2]" style="height: 40px; font-size: 12.5px; padding-left: 36px; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);" onkeydown="PosView.handleBarcodeKeydown(event)" autofocus />
+                            <svg style="position: absolute; left: 12px; top: 12px; color: #3b82f6;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>
                             </svg>
                         </div>
-                        <input type="text" id="pos-search" class="shadcn-input" placeholder="Filter items..." style="height: 42px;" oninput="PosView.filterCatalog(this.value)" />
-                        <button class="shadcn-btn-secondary" style="height: 42px; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="PosView.openLooseWeightModal()" title="Add custom weight/grams item">
-                            Weight Scale
+                        <button class="shadcn-btn-secondary" style="height: 40px; font-size: 11.5px; display: flex; align-items: center; justify-content: center; gap: 5px; color: #60a5fa;" onclick="PosView.openCameraScannerModal()" title="Scan barcodes directly via webcam or mobile camera">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Camera
+                        </button>
+                        <input type="text" id="pos-search" class="shadcn-input" placeholder="Filter items..." style="height: 40px;" oninput="PosView.filterCatalog(this.value)" />
+                        <button class="shadcn-btn-secondary" style="height: 40px; font-size: 11.5px; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="PosView.openLooseWeightModal()" title="Add loose weight/grams item">
+                            Weight
                         </button>
                     </div>
 
@@ -176,7 +214,7 @@ const PosView = {
                 <!-- Right Column: Active Bill, Customer Loyalty, Discounts & Checkout -->
                 <div class="pos-cart-panel" style="display: flex; flex-direction: column;">
                     <!-- Customer Details & Loyalty Header -->
-                    <div style="padding: 12px 16px; background: #16161b; border-bottom: 1px solid #222226;">
+                    <div style="padding: 12px 16px; background: #16161c; border-bottom: 1px solid #222226;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Customer & Loyalty</span>
                             <span id="cust-sync-badge" class="pos-tier-pill ${this.currentCustomer.phone ? 'simats' : 'retail'}">
@@ -239,7 +277,7 @@ const PosView = {
                     </div>
 
                     <!-- Cart Items List Container -->
-                    <div class="pos-cart-items-wrap" id="pos-cart-items" style="flex: 1; max-height: calc(100vh - 440px); overflow-y: auto;">
+                    <div class="pos-cart-items-wrap" id="pos-cart-items" style="flex: 1; max-height: calc(100vh - 460px); overflow-y: auto;">
                         ${this.renderCartItems()}
                     </div>
 
@@ -274,14 +312,15 @@ const PosView = {
 
             <!-- Floating Keyboard Shortcuts Footer Strip -->
             <div class="pos-shortcuts-strip">
-                <div><span class="pos-key-badge">F2</span>Focus Scan</div>
-                <div><span class="pos-key-badge">F3</span>Cust Phone</div>
+                <div><span class="pos-key-badge">Ctrl+1..4</span>Switch Cart</div>
+                <div><span class="pos-key-badge">F2</span>Scan</div>
+                <div><span class="pos-key-badge">F3</span>Cust</div>
                 <div><span class="pos-key-badge">F4</span>Coupon</div>
-                <div><span class="pos-key-badge">F7</span>Park Cart</div>
-                <div><span class="pos-key-badge">F8</span>Split Tender</div>
+                <div><span class="pos-key-badge">F6</span>Return</div>
+                <div><span class="pos-key-badge">F7</span>Park</div>
+                <div><span class="pos-key-badge">F8</span>Split Pay</div>
                 <div><span class="pos-key-badge">F9</span>Fast Cash</div>
                 <div><span class="pos-key-badge">F10</span>Customer Screen</div>
-                <div><span class="pos-key-badge">Esc</span>Clear Cart</div>
             </div>
 
             <!-- MODAL 1: ADVANCED MULTI-PAYMENT TENDER & SPLIT CHECKOUT DIALOG -->
@@ -526,45 +565,58 @@ const PosView = {
                 </div>
             </div>
 
-            <!-- MODAL 6: MULTI-COUNTER MANAGEMENT -->
-            <div id="modal-manage-counters" class="shadcn-modal-backdrop" style="display: none;">
-                <div class="shadcn-modal-dialog" style="max-width: 480px; background: #121217;">
+            <!-- MODAL 6: LIVE WEBCAM / CAMERA BARCODE SCANNER IMAGER -->
+            <div id="modal-camera-scanner" class="shadcn-modal-backdrop" style="display: none;">
+                <div class="shadcn-modal-dialog" style="max-width: 500px; background: #121217;">
                     <div class="shadcn-modal-header">
                         <div>
-                            <h3 class="shadcn-modal-title">Multi-Counter Station Network</h3>
-                            <div style="font-size: 11px; color: var(--text-muted);">Assign dedicated POS counters across retail hubs</div>
+                            <h3 class="shadcn-modal-title">Live Camera Barcode Scanner</h3>
+                            <div style="font-size: 11px; color: var(--text-muted);">Point camera at physical product barcode (EAN-13, Code-128, QR)</div>
                         </div>
-                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-manage-counters').style.display='none'">&times;</button>
+                        <button class="shadcn-modal-close" onclick="PosView.closeCameraScannerModal()">&times;</button>
+                    </div>
+                    <div class="shadcn-modal-body" style="padding: 16px; text-align: center;">
+                        <div style="position: relative; width: 100%; height: 260px; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                            <video id="pos-cam-video" style="width: 100%; height: 100%; object-fit: cover;" autoplay playsinline></video>
+                            <canvas id="pos-cam-canvas" style="display: none;"></canvas>
+                            <!-- Reticle Target Overlay -->
+                            <div style="position: absolute; width: 240px; height: 120px; border: 2px dashed #22c55e; border-radius: 8px; pointer-events: none; box-shadow: 0 0 16px rgba(34, 197, 94, 0.4);">
+                                <div style="position: absolute; top: -20px; left: 0; right: 0; text-align: center; color: #22c55e; font-size: 11px; font-weight: 700;">ALIGN BARCODE HERE</div>
+                            </div>
+                        </div>
+                        <div id="cam-scan-feedback" style="margin-top: 10px; font-size: 12px; color: #60a5fa; font-weight: 600;">
+                            Initializing video optical stream...
+                        </div>
+                    </div>
+                    <div class="shadcn-modal-footer">
+                        <button type="button" class="shadcn-btn-secondary" onclick="PosView.closeCameraScannerModal()">Close Camera</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL 7: SALES RETURN, EXCHANGE & CREDIT NOTE REGISTER -->
+            <div id="modal-sales-return" class="shadcn-modal-backdrop" style="display: none;">
+                <div class="shadcn-modal-dialog" style="max-width: 620px; background: #121217;">
+                    <div class="shadcn-modal-header">
+                        <div>
+                            <h3 class="shadcn-modal-title">Sales Return, Exchange & Credit Note</h3>
+                            <div style="font-size: 11px; color: var(--text-muted);">Process item returns, restock inventory, and issue customer refunds</div>
+                        </div>
+                        <button class="shadcn-modal-close" onclick="document.getElementById('modal-sales-return').style.display='none'">&times;</button>
                     </div>
                     <div class="shadcn-modal-body" style="padding: 16px;">
-                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Registered Stations</label>
-                        <div id="counter-list-items" style="display: flex; flex-direction: column; gap: 8px;">
-                            ${counters.map(c => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #18181c; border: 1px solid #222226; border-radius: 6px;">
-                                    <div>
-                                        <div style="font-weight: 700; color: #ffffff; font-size: 13px;">${c.name}</div>
-                                        <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">CODE: ${c.code}</div>
-                                    </div>
-                                    <span class="shadcn-badge ${c.id === this.activeCounter.id ? 'green' : 'default'}">
-                                        ${c.id === this.activeCounter.id ? 'CURRENT' : 'ONLINE'}
-                                    </span>
-                                </div>
-                            `).join('')}
+                        <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 14px;">
+                            <input type="text" id="return-invoice-query" class="shadcn-input" placeholder="Enter original Invoice # (e.g. INV-202611-C01-0001)..." />
+                            <button type="button" class="shadcn-btn-primary" onclick="PosView.searchInvoiceForReturn()">Lookup</button>
                         </div>
-                        <div style="padding-top: 14px; border-top: 1px solid #222226; margin-top: 14px;">
-                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: block;">+ Add New Counter Station</label>
-                            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px;">
-                                <input type="text" id="new-counter-name" class="shadcn-input" placeholder="e.g. Counter 05 - Lab Supply" />
-                                <button type="button" class="shadcn-btn-primary" onclick="PosView.addNewCounter()">
-                                    Add
-                                </button>
+                        <div id="return-invoice-details">
+                            <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                Enter previous bill number to fetch line items for refund or exchange.
                             </div>
                         </div>
                     </div>
                     <div class="shadcn-modal-footer">
-                        <button type="button" class="shadcn-btn-secondary" onclick="document.getElementById('modal-manage-counters').style.display='none'">
-                            Done
-                        </button>
+                        <button type="button" class="shadcn-btn-secondary" onclick="document.getElementById('modal-sales-return').style.display='none'">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -576,6 +628,26 @@ const PosView = {
         setTimeout(() => {
             document.getElementById('pos-barcode-scanner')?.focus();
         }, 80);
+    },
+
+    // --------------------------------------------------------------------------
+    // MULTI-CART REGISTER SWITCHING (Slots 1..4)
+    // --------------------------------------------------------------------------
+    switchCartSlot(slotIdx) {
+        if (slotIdx < 0 || slotIdx >= this.carts.length) return;
+        this.activeCartIdx = slotIdx;
+        this.refreshCartUI();
+        this.playSound('scan');
+        App.showToast(`Switched to Cart ${slotIdx + 1}`, 'info');
+
+        // Update Phone and Customer inputs
+        const phoneInput = document.getElementById('pos-cust-phone');
+        const nameInput = document.getElementById('pos-cust-name');
+        if (phoneInput) phoneInput.value = this.currentCustomer.phone || '';
+        if (nameInput) nameInput.value = this.currentCustomer.name || 'Walk-in Retail Cash Customer';
+
+        this.syncCustomerDisplay();
+        this.render(document.getElementById('main-content'));
     },
 
     // --------------------------------------------------------------------------
@@ -626,14 +698,17 @@ const PosView = {
     },
 
     // --------------------------------------------------------------------------
-    // KEYBOARD MASTER SHORTCUTS
+    // KEYBOARD MASTER SHORTCUTS (Ctrl+1..4, F2..F10)
     // --------------------------------------------------------------------------
     setupKeyboardShortcuts() {
         if (this._keyHandler) {
             window.removeEventListener('keydown', this._keyHandler);
         }
         this._keyHandler = (e) => {
-            if (e.key === 'F2') {
+            if (e.ctrlKey && e.key >= '1' && e.key <= '4') {
+                e.preventDefault();
+                this.switchCartSlot(parseInt(e.key) - 1);
+            } else if (e.key === 'F2') {
                 e.preventDefault();
                 document.getElementById('pos-barcode-scanner')?.focus();
             } else if (e.key === 'F3') {
@@ -642,6 +717,9 @@ const PosView = {
             } else if (e.key === 'F4') {
                 e.preventDefault();
                 document.getElementById('pos-promo-input')?.focus();
+            } else if (e.key === 'F6') {
+                e.preventDefault();
+                this.openSalesReturnModal();
             } else if (e.key === 'F7') {
                 e.preventDefault();
                 if (this.cart.length > 0) this.parkCurrentCart();
@@ -660,12 +738,193 @@ const PosView = {
                     this.closeCheckoutModal();
                 } else if (document.getElementById('modal-pos-receipt')?.style.display === 'flex') {
                     this.closeReceiptModal();
+                } else if (document.getElementById('modal-camera-scanner')?.style.display === 'flex') {
+                    this.closeCameraScannerModal();
+                } else if (document.getElementById('modal-sales-return')?.style.display === 'flex') {
+                    document.getElementById('modal-sales-return').style.display = 'none';
                 } else if (this.cart.length > 0 && confirm('Clear active POS cart?')) {
                     this.clearCart();
                 }
             }
         };
         window.addEventListener('keydown', this._keyHandler);
+    },
+
+    // --------------------------------------------------------------------------
+    // LIVE CAMERA BARCODE SCANNER IMAGER
+    // --------------------------------------------------------------------------
+    async openCameraScannerModal() {
+        const modal = document.getElementById('modal-camera-scanner');
+        const video = document.getElementById('pos-cam-video');
+        const feedback = document.getElementById('cam-scan-feedback');
+        if (!modal || !video) return;
+
+        modal.style.display = 'flex';
+        feedback.innerText = 'Requesting camera authorization...';
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+            this.cameraStream = stream;
+            video.srcObject = stream;
+            feedback.innerText = 'Camera active. Point barcode inside the green reticle.';
+            this.startCameraBarcodeLoop();
+        } catch (err) {
+            feedback.innerHTML = `<span style="color: #ef4444;">Camera access denied or unavailable: ${err.message}</span>`;
+        }
+    },
+
+    startCameraBarcodeLoop() {
+        if (!('BarcodeDetector' in window)) {
+            const feedback = document.getElementById('cam-scan-feedback');
+            if (feedback) feedback.innerHTML = `<span>Camera streaming. Press enter manual code or connect hardware barcode gun.</span>`;
+            return;
+        }
+
+        const detector = new BarcodeDetector({ formats: ['ean_13', 'code_128', 'qr_code', 'upc_a', 'code_39'] });
+        const video = document.getElementById('pos-cam-video');
+        const feedback = document.getElementById('cam-scan-feedback');
+
+        const scanFrame = async () => {
+            if (!this.cameraStream || document.getElementById('modal-camera-scanner')?.style.display === 'none') {
+                return;
+            }
+
+            try {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    const barcodes = await detector.detect(video);
+                    if (barcodes && barcodes.length > 0) {
+                        const rawCode = barcodes[0].rawValue;
+                        feedback.innerHTML = `<span style="color: #4ade80;">Detected: ${rawCode}</span>`;
+                        this.handleBarcodeScanCode(rawCode);
+                        this.closeCameraScannerModal();
+                        return;
+                    }
+                }
+            } catch (_) {}
+
+            requestAnimationFrame(scanFrame);
+        };
+
+        requestAnimationFrame(scanFrame);
+    },
+
+    closeCameraScannerModal() {
+        if (this.cameraStream) {
+            this.cameraStream.getTracks().forEach(track => track.stop());
+            this.cameraStream = null;
+        }
+        const modal = document.getElementById('modal-camera-scanner');
+        if (modal) modal.style.display = 'none';
+        document.getElementById('pos-barcode-scanner')?.focus();
+    },
+
+    handleBarcodeScanCode(code) {
+        const match = this.products.find(p => 
+            (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
+            (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
+            p.name.toLowerCase() === code.toLowerCase()
+        );
+
+        if (match) {
+            this.addToCart(match.id);
+            App.showToast(`Scanned: ${match.name}`, 'success');
+        } else {
+            this.playSound('error');
+            App.showToast(`Scanned barcode "${code}" not found in catalog`, 'danger');
+        }
+    },
+
+    // --------------------------------------------------------------------------
+    // SALES RETURN, EXCHANGE & CREDIT NOTE REGISTER
+    // --------------------------------------------------------------------------
+    openSalesReturnModal() {
+        const modal = document.getElementById('modal-sales-return');
+        if (modal) modal.style.display = 'flex';
+    },
+
+    async searchInvoiceForReturn() {
+        const qInput = document.getElementById('return-invoice-query');
+        const container = document.getElementById('return-invoice-details');
+        const q = (qInput?.value || '').trim();
+        if (!q || !container) return;
+
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Fetching invoice from Supabase...</div>`;
+
+        try {
+            const invoices = await window.SupabaseClient.getInvoices();
+            const inv = invoices.find(i => i.invoice_number.toUpperCase() === q.toUpperCase());
+
+            if (!inv) {
+                container.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">Invoice "${q}" not found in cloud database.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="background: #181820; border: 1px solid #282834; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 800; color: #fff; font-size: 14px;">${inv.invoice_number}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${inv.invoice_date} • ${inv.customer_name}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 16px; font-weight: 800; color: #22c55e; font-family: monospace;">₹${(inv.grand_total / 100).toFixed(2)}</div>
+                            <span class="shadcn-badge green" style="font-size: 9px;">ORIGINAL SALE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; margin-bottom: 6px;">Select Items to Return:</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;">
+                    ${(inv.lines || []).map((l, idx) => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #15151b; border: 1px solid #23232c; border-radius: 6px;">
+                            <div>
+                                <div style="color: #fff; font-weight: 600; font-size: 13px;">${l.products ? l.products.name : 'Item'}</div>
+                                <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">Sold: ${l.quantity} units @ ₹${((l.unit_price_cents || 0)/100).toFixed(2)}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="number" min="0" max="${l.quantity}" value="0" id="ret-qty-${idx}" class="shadcn-input" style="width: 60px; height: 30px; text-align: center;" />
+                                <button class="shadcn-btn-secondary" style="padding: 2px 8px; font-size: 11px; color: #f59e0b;" onclick="PosView.executeReturnItem('${inv.id}', '${l.product_id}', document.getElementById('ret-qty-${idx}').value, ${l.unit_price_cents})">
+                                    Return
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } catch (err) {
+            container.innerHTML = `<div style="color: #ef4444; padding: 16px;">Error searching invoice: ${err.message}</div>`;
+        }
+    },
+
+    async executeReturnItem(invoiceId, productId, returnQty, unitPriceCents) {
+        const qty = Number(returnQty) || 0;
+        if (qty <= 0) {
+            App.showToast('Please enter a return quantity > 0', 'danger');
+            return;
+        }
+
+        const refundTotalCents = qty * unitPriceCents;
+        const refundRupees = (refundTotalCents / 100).toFixed(2);
+
+        if (!confirm(`Confirm sales return of ${qty} unit(s)? Customer will be refunded ₹${refundRupees}.`)) {
+            return;
+        }
+
+        try {
+            // 1. Restock inventory balance in Supabase
+            await window.SupabaseClient.adjustStock("20000000-0000-0000-0000-000000000001", productId, qty, `Sales Return from Invoice ${invoiceId}`);
+            
+            // 2. Log audit event
+            await window.SupabaseClient.logAudit("SALES_RETURN", "INVOICE", invoiceId, `Processed sales return for product ${productId}, qty: ${qty}, refunded ₹${refundRupees}`);
+
+            this.playSound('success');
+            App.showToast(`Sales return approved! Refunded ₹${refundRupees} & restocked ${qty} units.`, 'success');
+            document.getElementById('modal-sales-return').style.display = 'none';
+        } catch (err) {
+            App.showToast(`Failed to process return: ${err.message}`, 'danger');
+        }
     },
 
     // --------------------------------------------------------------------------
@@ -850,6 +1109,7 @@ const PosView = {
             'FACULTY15': { name: 'Academic Faculty Rebate (15%)', bps: 1500, minRupees: 0 },
             'STUDENT5': { name: 'SIMATS Student Concession (5%)', bps: 500, minRupees: 0 },
             'FESTIVE100': { name: 'Festive Mega Saving (-₹100)', flatRupees: 100, minRupees: 500 },
+            'SAVE100': { name: 'Flat ₹100 Off', flatRupees: 100, minRupees: 500 },
             'SAVE50': { name: 'Quick Saver (-₹50)', flatRupees: 50, minRupees: 300 },
             'BULK20': { name: 'Wholesale B2B Concession (20%)', bps: 2000, minRupees: 1000 }
         };
@@ -897,7 +1157,6 @@ const PosView = {
 
         const badge = document.getElementById('cust-sync-badge');
         const feedback = document.getElementById('cust-phone-feedback');
-        const nameInput = document.getElementById('pos-cust-name');
 
         if (phone.length < 10) {
             if (badge) { badge.className = 'pos-tier-pill retail'; badge.innerText = 'Retail Regular'; }
@@ -941,7 +1200,6 @@ const PosView = {
             tier = 'B2B Wholesale';
         }
 
-        // Loyalty points calculation: 1 pt per ₹100 of credit / spend
         const points = Math.floor((c.outstanding_balance_cents || 24000) / 10000) * 15;
 
         this.currentCustomer = {
@@ -1050,9 +1308,7 @@ const PosView = {
         let qty = parseFloat(qtyInput.value) || 0;
         const unit = unitSel ? unitSel.value : 'KG';
 
-        if (unit === 'G') {
-            qty = qty / 1000;
-        }
+        if (unit === 'G') qty = qty / 1000;
 
         const totalCents = Math.round(qty * unitPriceCents);
         calcEl.innerText = `₹${(totalCents / 100).toFixed(2)}`;
@@ -1100,23 +1356,6 @@ const PosView = {
         }
     },
 
-    showManageCountersModal() {
-        const modal = document.getElementById('modal-manage-counters');
-        if (modal) modal.style.display = 'flex';
-    },
-
-    addNewCounter() {
-        const nameInput = document.getElementById('new-counter-name');
-        const name = nameInput ? nameInput.value.trim() : '';
-        if (!name) return;
-
-        if (window.StoreConfig) {
-            const added = window.StoreConfig.addCounter(name);
-            App.showToast(`Registered POS Counter: ${added.name}`, 'success');
-            this.render(document.getElementById('main-content'));
-        }
-    },
-
     // --------------------------------------------------------------------------
     // CATALOG FILTERING & RENDERING
     // --------------------------------------------------------------------------
@@ -1155,10 +1394,14 @@ const PosView = {
 
         return items.map(p => {
             const price = (p.selling_price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            const stock = p.stock_on_hand !== undefined ? p.stock_on_hand : 10;
             return `
                 <div class="pos-item-card" onclick="PosView.addToCart('${p.id}')">
                     <div>
-                        <div style="font-size: 11px; color: #60a5fa; font-weight: 700; text-transform: uppercase;">${p.category || 'General'}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 10px; color: #60a5fa; font-weight: 700; text-transform: uppercase;">${p.category || 'General'}</span>
+                            <span class="shadcn-badge ${stock > 5 ? 'green' : 'yellow'}" style="font-size: 9px; padding: 1px 5px;">${stock} in stock</span>
+                        </div>
                         <div style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 4px 0 6px 0; line-height: 1.3;">${p.name}</div>
                         <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
                             SKU: ${p.sku} ${p.barcode ? `• Barcode: ${p.barcode}` : ''}
@@ -1296,7 +1539,6 @@ const PosView = {
             const gross = Math.round(qty * unitPrice);
             subtotal += gross;
 
-            // Combine item discount + global promo discount
             const itemDiscBps = Number(item.discount_bps) || 0;
             const effectiveDiscBps = Math.min(10000, itemDiscBps + this.promoDiscountBps);
             const discAmount = effectiveDiscBps > 0 ? Math.round((gross * effectiveDiscBps) / 10000) : 0;
@@ -1340,7 +1582,6 @@ const PosView = {
             };
         });
 
-        // Deduct points redemption (₹1 per point)
         const pointsDeductionCents = Math.round((this.redeemedPoints || 0) * 100);
         totalDiscountCents += pointsDeductionCents;
 
@@ -1424,22 +1665,9 @@ const PosView = {
             const input = e.target;
             const code = (input.value || '').trim();
             if (!code) return;
-
-            const match = this.products.find(p => 
-                (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
-                (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
-                p.name.toLowerCase() === code.toLowerCase()
-            );
-
-            if (match) {
-                this.addToCart(match.id);
-                input.value = '';
-                input.focus();
-            } else {
-                this.playSound('error');
-                App.showToast(`Barcode "${code}" not found in master SKU catalog`, 'danger');
-                input.select();
-            }
+            this.handleBarcodeScanCode(code);
+            input.value = '';
+            input.focus();
         }
     },
 
@@ -1561,7 +1789,6 @@ const PosView = {
         this.syncCustomerDisplay({ change_due_cents: Math.max(0, change) });
     },
 
-    // Split Tender Calculation
     recalcSplitTender() {
         const q = this.calculateQuotation();
         const getVal = (id) => Math.round((parseFloat(document.getElementById(id)?.value || '0') || 0) * 100);

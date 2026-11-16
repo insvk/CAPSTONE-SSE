@@ -6,6 +6,12 @@
  * ==============================================================================
  */
 
+const crypto = require('crypto');
+
+function hashPassword(p) {
+    return crypto.createHash('sha256').update('imbs_salt_v1:' + (p || '').trim()).digest('hex');
+}
+
 const SUPABASE_DEFAULT_URL = 'https://fdtkwdkpanxbuextrpiw.supabase.co';
 const SUPABASE_DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkdGt3ZGtwYW54YnVleHRycGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NzM5MTksImV4cCI6MjEwOTU0OTkxOX0.MI0VyIiU9uUO1lo9nf_fnTk-htATdRBisZlmM4IelIE';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkdGt3ZGtwYW54YnVleHRycGl3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5Mzk3MzkxOSwiZXhwIjoyMTA5NTQ5OTE5fQ.gFbbp0P942xoIp-1xrh8Bf9VTDFGHYn4LueorVDQy20';
@@ -586,6 +592,11 @@ module.exports = async (req, res) => {
                 if (body.job_title !== undefined) updatePayload.job_title = body.job_title.trim();
                 if (body.avatar_url !== undefined) updatePayload.avatar_url = body.avatar_url ? body.avatar_url.trim() : null;
                 if (body.is_active !== undefined) updatePayload.is_active = Boolean(body.is_active);
+                if (body.password !== undefined && body.password.trim()) {
+                    updatePayload.password_hash = hashPassword(body.password.trim());
+                } else if (body.password_hash !== undefined && body.password_hash.trim()) {
+                    updatePayload.password_hash = body.password_hash.trim();
+                }
                 updatePayload.updated_at = new Date().toISOString();
 
                 const updated = await supaRest(`user_profiles?id=eq.${encodeURIComponent(targetId)}`, {
@@ -622,6 +633,7 @@ module.exports = async (req, res) => {
                         full_name: (body.full_name || "Staff Member").trim(),
                         job_title: body.job_title || "Staff",
                         avatar_url: body.avatar_url ? body.avatar_url.trim() : null,
+                        password_hash: (body.password && body.password.trim()) ? hashPassword(body.password.trim()) : hashPassword('Password@123'),
                         is_active: true
                     })
                 });

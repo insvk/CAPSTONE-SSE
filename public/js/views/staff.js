@@ -148,6 +148,9 @@ const StaffView = {
                                             </span>
                                         </td>
                                         <td style="text-align: right; white-space: nowrap;">
+                                            <button class="tblr-btn tblr-btn-sm tblr-btn-warning" style="margin-right: 6px; font-weight: 600;" title="Edit / Reset password in Supabase Cloud" onclick="StaffView.showPasswordModal('${s.id}')">
+                                                🔑 Password
+                                            </button>
                                             <button class="tblr-btn tblr-btn-sm tblr-btn-primary" style="margin-right: 6px;" title="Edit employee name, title, role or profile picture" onclick="StaffView.showEditModal('${s.id}')">
                                                 Edit
                                             </button>
@@ -183,6 +186,191 @@ const StaffView = {
             window.App.navigateTo('dashboard');
         } catch (err) {
             console.error("Switch user error", err);
+        }
+    },
+
+    showPasswordModal(staffId) {
+        const staff = this.staffList.find(s => s.id === staffId);
+        if (!staff) {
+            window.App.showToast("Staff record not found.", "danger");
+            return;
+        }
+
+        const existing = document.getElementById('modal-password-staff');
+        if (existing) existing.remove();
+
+        const currentUser = window.SupabaseClient ? window.SupabaseClient.getCurrentUser() : null;
+        const isSelf = currentUser && (currentUser.id === staff.id || currentUser.email === staff.email);
+        const initials = staff.full_name ? staff.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ST';
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-password-staff';
+        modal.className = 'tblr-modal-backdrop';
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10006';
+
+        modal.innerHTML = `
+            <div class="tblr-modal-dialog" style="max-width: 480px; background: #121215; border: 1px solid #27272a; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
+                <div class="tblr-modal-header" style="border-bottom: 1px solid #222226; padding: 16px 20px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">🔑</span>
+                            <h3 class="tblr-modal-title" style="color: #fff; margin: 0; font-size: 16px;">
+                                ${isSelf ? 'Change My Account Password' : `Change Password: ${staff.full_name}`}
+                            </h3>
+                            ${isSelf ? '<span class="tblr-badge tblr-badge-blue" style="font-size: 10px;">Your Account</span>' : ''}
+                        </div>
+                        <div style="font-size: 12px; color: var(--tblr-text-muted); margin-top: 4px;">
+                            Directly updates the encrypted password_hash in Supabase PostgreSQL Cloud
+                        </div>
+                    </div>
+                    <button class="tblr-modal-close" onclick="document.getElementById('modal-password-staff').remove()">&times;</button>
+                </div>
+                <form onsubmit="StaffView.handlePasswordSubmit(event, '${staff.id}', '${staff.email.replace(/'/g, "\\'")}')">
+                    <div class="tblr-modal-body" style="padding: 20px;">
+                        <!-- Target Account Card -->
+                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px 14px; background: #18181c; border: 1px solid #27272a; border-radius: 8px;">
+                            <div style="width: 42px; height: 42px; border-radius: 50%; background: #233446; color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${staff.avatar_url ? `<img src="${staff.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.remove()">` : ''}
+                                <span>${initials}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${staff.full_name}
+                                </div>
+                                <div style="font-size: 12px; color: var(--tblr-text-muted); font-family: monospace;">
+                                    ${staff.email} • <span class="tblr-badge tblr-badge-blue" style="font-size: 10px;">${staff.role}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New Password Field -->
+                        <div class="tblr-form-group" style="margin-bottom: 14px;">
+                            <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                <span>New Password *</span>
+                                <span style="font-size: 11px; color: var(--tblr-text-muted);">Min. 4 characters</span>
+                            </label>
+                            <div style="position: relative;">
+                                <input type="password" id="staff-pwd-new" class="shadcn-input" placeholder="Enter new password" required autocomplete="new-password" style="padding-right: 40px;" />
+                                <button type="button" onclick="StaffView.togglePwdVisibility('staff-pwd-new')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #71717a; cursor: pointer; padding: 4px;">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password Field -->
+                        <div class="tblr-form-group" style="margin-bottom: 14px;">
+                            <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Confirm New Password *</label>
+                            <div style="position: relative;">
+                                <input type="password" id="staff-pwd-confirm" class="shadcn-input" placeholder="Repeat new password" required autocomplete="new-password" style="padding-right: 40px;" />
+                                <button type="button" onclick="StaffView.togglePwdVisibility('staff-pwd-confirm')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #71717a; cursor: pointer; padding: 4px;">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Presets -->
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 11px; font-weight: 600; color: var(--tblr-text-muted); margin-bottom: 6px; text-transform: uppercase;">
+                                Quick Strong Password Presets:
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="font-size: 11px; padding: 2px 8px;" onclick="StaffView.setPresetPassword('Admin@Password26')">
+                                    Admin@Password26
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="font-size: 11px; padding: 2px 8px;" onclick="StaffView.setPresetPassword('Apex@2026!k9')">
+                                    Apex@2026!k9
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="font-size: 11px; padding: 2px 8px;" onclick="StaffView.setPresetPassword('Cashier@123')">
+                                    Cashier@123
+                                </button>
+                                <button type="button" class="tblr-btn tblr-btn-sm tblr-btn-default" style="font-size: 11px; padding: 2px 8px; color: #38bdf8;" onclick="StaffView.generateRandomPassword()">
+                                    ⚡ Generate Random
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(32, 107, 196, 0.08); border: 1px solid rgba(32, 107, 196, 0.2); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; color: #93c5fd; line-height: 1.4;">
+                            ℹ️ <strong>Cloud Persistence Note:</strong> This change is written directly to the Supabase PostgreSQL database. The user will be required to authenticate with this new password on their next sign-in.
+                        </div>
+                    </div>
+                    <div class="tblr-modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #222226;">
+                        <button type="button" class="tblr-btn tblr-btn-default" onclick="document.getElementById('modal-password-staff').remove()">
+                            Cancel
+                        </button>
+                        <button type="submit" id="staff-pwd-submit-btn" class="tblr-btn tblr-btn-primary" style="background: #206bc4; font-weight: 600;">
+                            Save Password in Cloud
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        setTimeout(() => document.getElementById('staff-pwd-new')?.focus(), 50);
+    },
+
+    togglePwdVisibility(fieldId) {
+        const f = document.getElementById(fieldId);
+        if (f) f.type = f.type === 'password' ? 'text' : 'password';
+    },
+
+    setPresetPassword(pwd) {
+        const p1 = document.getElementById('staff-pwd-new');
+        const p2 = document.getElementById('staff-pwd-confirm');
+        if (p1) p1.value = pwd;
+        if (p2) p2.value = pwd;
+    },
+
+    generateRandomPassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+        let pwd = '';
+        for (let i = 0; i < 12; i++) {
+            pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        this.setPresetPassword(pwd);
+        window.App.showToast('Generated strong password: ' + pwd, 'info');
+    },
+
+    async handlePasswordSubmit(e, staffId, email) {
+        e.preventDefault();
+        const p1 = document.getElementById('staff-pwd-new')?.value;
+        const p2 = document.getElementById('staff-pwd-confirm')?.value;
+        const submitBtn = document.getElementById('staff-pwd-submit-btn');
+
+        if (!p1 || p1.length < 4) {
+            window.App.showToast("Password must be at least 4 characters long.", "danger");
+            return;
+        }
+
+        if (p1 !== p2) {
+            window.App.showToast("Passwords do not match. Please re-enter.", "danger");
+            return;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Writing to Cloud Database...';
+        }
+
+        try {
+            await window.SupabaseClient.updateUserPassword(staffId, p1);
+            document.getElementById('modal-password-staff')?.remove();
+
+            const currentUser = window.SupabaseClient.getCurrentUser();
+            const isSelf = currentUser && (currentUser.id === staffId || currentUser.email === email);
+
+            if (isSelf) {
+                window.App.showToast("Your password was updated in Supabase! Use it for all future logins.", "success");
+            } else {
+                window.App.showToast(`Password for ${email} updated successfully in Supabase Cloud!`, "success");
+            }
+        } catch (err) {
+            console.error("Change password error", err);
+            window.App.showToast("Failed to update password: " + err.message, "danger");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Save Password in Cloud';
+            }
         }
     },
 
@@ -282,6 +470,15 @@ const StaffView = {
                             </div>
                         </div>
 
+                        <!-- Optional Password Change inside Edit Profile -->
+                        <div class="tblr-form-group" style="margin-bottom: 14px; padding-top: 10px; border-top: 1px solid #27272a;">
+                            <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                <span>Change Password in Cloud (Optional)</span>
+                                <span style="font-size: 11px; color: var(--tblr-text-muted);">Leave empty to keep current</span>
+                            </label>
+                            <input type="password" id="staff-edit-pwd" class="shadcn-input" placeholder="Enter new password to update in Supabase" autocomplete="new-password" />
+                        </div>
+
                         <div style="font-size: 11px; color: var(--tblr-text-muted);">
                             Account Email: <strong>${staff.email}</strong> (immutable primary enterprise identifier)
                         </div>
@@ -340,15 +537,21 @@ const StaffView = {
         const avatarUrl = document.getElementById('staff-edit-avatar')?.value.trim();
         const role = document.getElementById('staff-edit-role')?.value;
         const isActive = document.getElementById('staff-edit-status')?.value === 'true';
+        const newPassword = document.getElementById('staff-edit-pwd')?.value.trim();
 
         try {
-            await window.SupabaseClient.updateUserProfile(staffId, {
+            const updatePayload = {
                 full_name: fullName,
                 job_title: jobTitle,
                 avatar_url: avatarUrl,
                 role: role,
                 is_active: isActive
-            });
+            };
+            if (newPassword && newPassword.length >= 4) {
+                updatePayload.password = newPassword;
+            }
+
+            await window.SupabaseClient.updateUserProfile(staffId, updatePayload);
 
             document.getElementById('modal-edit-staff')?.remove();
             window.App.showToast(`Updated profile for ${fullName} in cloud database!`, 'success');
@@ -402,6 +605,10 @@ const StaffView = {
                             <input type="url" id="staff-add-avatar" class="shadcn-input" placeholder="https://..." />
                         </div>
                         <div class="tblr-form-group" style="margin-bottom: 14px;">
+                            <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Initial Cloud Password</label>
+                            <input type="password" id="staff-add-password" class="shadcn-input" placeholder="Default: Password@123" value="Password@123" required />
+                        </div>
+                        <div class="tblr-form-group" style="margin-bottom: 14px;">
                             <label class="tblr-form-label" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Role-Based Access Control (RBAC) Role *</label>
                             <select id="staff-add-role" class="shadcn-select" required>
                                 <option value="SUPER_ADMIN">SUPER_ADMIN (Full Complete Access)</option>
@@ -437,6 +644,7 @@ const StaffView = {
             email: document.getElementById('staff-add-email')?.value.trim(),
             job_title: document.getElementById('staff-add-title')?.value.trim() || 'Staff Member',
             avatar_url: document.getElementById('staff-add-avatar')?.value.trim() || null,
+            password: document.getElementById('staff-add-password')?.value.trim() || 'Password@123',
             role: document.getElementById('staff-add-role')?.value || 'CASHIER'
         };
 
