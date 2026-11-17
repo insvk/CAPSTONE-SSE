@@ -377,6 +377,190 @@ const SupabaseClient = {
         return res[0];
     },
 
+    async updateCustomer(id, data) {
+        const payload = {};
+        if (data.name !== undefined) payload.name = data.name;
+        if (data.tax_identifier !== undefined) payload.tax_identifier = data.tax_identifier;
+        if (data.email !== undefined) payload.email = data.email;
+        if (data.phone !== undefined) payload.phone = data.phone;
+        if (data.state_code !== undefined) payload.state_code = data.state_code;
+        if (data.credit_limit_cents !== undefined) payload.credit_limit_cents = data.credit_limit_cents;
+        if (data.credit_limit !== undefined) payload.credit_limit_cents = Math.round(Number(data.credit_limit) * 100);
+        if (data.is_active !== undefined) payload.is_active = data.is_active;
+        payload.updated_at = new Date().toISOString();
+
+        const res = await this.restRequest(`customers?id=eq.${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+        });
+        await this.logAudit("UPDATE", "CUSTOMER", id, `Updated customer details for: ${data.name || id}`);
+        return res;
+    },
+
+    async recordCustomerPayment(payload) {
+        const customerId = payload.customer_id;
+        const amountCents = Math.round(Number(payload.amount_cents) || (Number(payload.amount) * 100));
+        const paymentMethod = payload.payment_method || 'CASH';
+        const refNo = payload.reference_number || `PAY-${Date.now().toString().slice(-6)}`;
+        const payDate = payload.payment_date || new Date().toISOString().split('T')[0];
+
+        // 1. Insert payment record into public.payments
+        const payPayload = {
+            organization_id: "00000000-0000-0000-0000-000000000001",
+            customer_id: customerId,
+            payment_number: refNo,
+            payment_date: payDate,
+            amount_cents: amountCents,
+            allocated_amount_cents: amountCents,
+            unallocated_amount_cents: 0,
+            payment_method: paymentMethod,
+            reference_number: payload.reference_number || 'SETTLEMENT',
+            status: 'COMPLETED'
+        };
+
+        const payRes = await this.restRequest('payments', {
+            method: 'POST',
+            body: JSON.stringify(payPayload)
+        });
+
+        // 2. Decrement customer's outstanding balance
+        const custRecs = await this.restRequest(`customers?id=eq.${customerId}`);
+        let newBalanceCents = 0;
+        if (custRecs && custRecs.length > 0) {
+            const currentBal = Number(custRecs[0].outstanding_balance_cents) || 0;
+            newBalanceCents = Math.max(0, currentBal - amountCents);
+            await this.restRequest(`customers?id=eq.${customerId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    outstanding_balance_cents: newBalanceCents,
+                    updated_at: new Date().toISOString()
+                })
+            });
+        }
+
+        await this.logAudit("PAYMENT", "CUSTOMER", customerId, `Recorded payment ${refNo} of ₹${(amountCents/100).toFixed(2)} via ${paymentMethod}`);
+        return {
+            payment: payRes ? payRes[0] : payPayload,
+            new_outstanding_balance_cents: newBalanceCents
+        };
+    },
+
+    async getCustomerStatement(customerId) {
+        const [invoices, payments, customers] = await Promise.all([
+            this.restRequest(`invoices?customer_id=eq.${customerId}&select=id,invoice_number,invoice_date,grand_total_cents,paid_amount_cents,balance_due_cents,status,created_at&order=invoice_date.asc,created_at.asc`).catch(() => []),
+            this.restRequest(`payments?customer_id=eq.${customerId}&select=id,payment_number,payment_date,amount_cents,payment_method,reference_number,status,created_at&order=payment_date.asc,created_at.asc`).catch(() => []),
+            this.restRequest(`customers?id=eq.${customerId}`).catch(() => [])
+        ]);
+
+        const customer = (customers && customers[0]) || { name: 'Customer', credit_limit_cents: 0, outstanding_balance_cents: 0 };
+        const ledger = [];
+        let runningBalance = 0;
+        let totalDebits = 0;
+        let totalCredits = 0;
+
+        (invoices || []).forEach(inv => {
+            ledger.push({
+                type: 'INVOICE',
+                id: inv.id,
+                reference: inv.invoice_number,
+                date: inv.invoice_date,
+                created_at: inv.created_at || inv.invoice_date,
+                description: `Tax Invoice / POS Sale`,
+                debit: inv.grand_total_cents || 0,
+                credit: 0
+            });
+        });
+
+        (payments || []).forEach(pay => {
+            ledger.push({
+                type: 'PAYMENT',
+                id: pay.id,
+                reference: pay.payment_number,
+                date: pay.payment_date,
+                created_at: pay.created_at || pay.payment_date,
+                description: `Payment Received (${pay.payment_method || 'CASH'}${pay.reference_number ? ' - ' + pay.reference_number : ''})`,
+                debit: 0,
+                credit: pay.amount_cents || 0
+            });
+        });
+
+        // Sort chronologically
+        ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        const entries = ledger.map(entry => {
+            totalDebits += entry.debit;
+            totalCredits += entry.credit;
+            runningBalance += (entry.debit - entry.credit);
+            return {
+                ...entry,
+                running_balance: runningBalance
+            };
+        });
+
+        // Compute aging breakdown (0-30, 31-60, 61-90, 90+ days)
+        const now = new Date();
+        const aging = { current: 0, days30: 0, days60: 0, days90: 0 };
+        (invoices || []).forEach(inv => {
+            const due = (inv.grand_total_cents || 0) - (inv.paid_amount_cents || 0);
+            if (due > 0) {
+                const invDate = new Date(inv.invoice_date);
+                const diffDays = Math.floor((now - invDate) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 30) aging.current += due;
+                else if (diffDays <= 60) aging.days30 += due;
+                else if (diffDays <= 90) aging.days60 += due;
+                else aging.days90 += due;
+            }
+        });
+
+        // Compute Lifetime Analytics & Loyalty Tier
+        const lifetimeSpentCents = totalDebits;
+        const totalOrders = (invoices || []).length;
+        const aovCents = totalOrders > 0 ? Math.round(lifetimeSpentCents / totalOrders) : 0;
+        
+        let tier = 'Bronze';
+        let tierPointsMultiplier = 1;
+        let tierDiscountPct = 0;
+        if (lifetimeSpentCents >= 20000000) { // >= ₹2,00,000
+            tier = 'Platinum';
+            tierPointsMultiplier = 3;
+            tierDiscountPct = 10;
+        } else if (lifetimeSpentCents >= 5000000) { // >= ₹50,000
+            tier = 'Gold';
+            tierPointsMultiplier = 2;
+            tierDiscountPct = 5;
+        } else if (lifetimeSpentCents >= 1000000) { // >= ₹10,000
+            tier = 'Silver';
+            tierPointsMultiplier = 1.5;
+            tierDiscountPct = 3;
+        }
+
+        const loyaltyPoints = Math.floor((lifetimeSpentCents / 100) * (tierPointsMultiplier / 10));
+
+        return {
+            customer: {
+                ...customer,
+                credit_limit_cents: customer.credit_limit_cents || 0,
+                outstanding_balance_cents: customer.outstanding_balance_cents !== undefined ? customer.outstanding_balance_cents : Math.max(0, runningBalance),
+                loyalty_tier: tier,
+                loyalty_points: loyaltyPoints,
+                tier_discount_pct: tierDiscountPct
+            },
+            summary: {
+                total_invoiced_cents: totalDebits,
+                total_paid_cents: totalCredits,
+                current_balance_cents: Math.max(0, runningBalance),
+                lifetime_spend_cents: lifetimeSpentCents,
+                total_orders: totalOrders,
+                aov_cents: aovCents,
+                credit_limit_cents: customer.credit_limit_cents || 0,
+                credit_available_cents: Math.max(0, (customer.credit_limit_cents || 0) - runningBalance),
+                credit_utilization_pct: customer.credit_limit_cents > 0 ? Math.min(100, Math.round((runningBalance / customer.credit_limit_cents) * 100)) : 0,
+                aging: aging
+            },
+            ledger: entries
+        };
+    },
+
     // --------------------------------------------------------------------------
     // STAFF & RBAC USER MANAGEMENT
     // --------------------------------------------------------------------------
@@ -1330,7 +1514,9 @@ const SupabaseClient = {
                         const balRecs = await this.restRequest(`inventory_balances?warehouse_id=eq.${invoicePayload.warehouse_id}&product_id=eq.${line.product_id}`);
                         if (balRecs && balRecs.length > 0) {
                             const currentStock = Number(balRecs[0].quantity_on_hand) || 0;
-                            const updatedStock = Math.max(0, currentStock - qty);
+                            const isReturn = line.is_return === true;
+                            const delta = isReturn ? qty : -qty;
+                            const updatedStock = Math.max(0, currentStock + delta);
                             await this.restRequest(`inventory_balances?id=eq.${balRecs[0].id}`, {
                                 method: 'PATCH',
                                 body: JSON.stringify({

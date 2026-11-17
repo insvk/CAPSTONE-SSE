@@ -298,6 +298,26 @@ const PosView = {
                         ${this.renderTotals()}
                     </div>
 
+                    <!-- Quick Cash Tender Denomination Bar & Live Change Due Display -->
+                    <div style="padding: 8px 14px; background: #131318; border-top: 1px solid #1f1f24;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Quick Cash Tender</span>
+                            <span id="pos-quick-tender-hint" style="font-size: 10.5px; color: #60a5fa; font-family: var(--font-mono);">Instant Cash Calculation</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 6px;">
+                            <button type="button" class="pos-denom-pill" onclick="PosView.handleQuickCashPreset('EXACT')">Exact</button>
+                            <button type="button" class="pos-denom-pill" onclick="PosView.handleQuickCashPreset(100)">+₹100</button>
+                            <button type="button" class="pos-denom-pill" onclick="PosView.handleQuickCashPreset(200)">+₹200</button>
+                            <button type="button" class="pos-denom-pill" onclick="PosView.handleQuickCashPreset(500)">+₹500</button>
+                            <button type="button" class="pos-denom-pill" onclick="PosView.handleQuickCashPreset(2000)">+₹2000</button>
+                        </div>
+                        <!-- High-Contrast Live Change Due Display -->
+                        <div id="pos-quick-change-box" style="display: none; padding: 6px 10px; background: #052e16; border: 1px solid #15803d; border-radius: 6px; margin-bottom: 6px; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; font-weight: 700; color: #4ade80;">CHANGE TO RETURN:</span>
+                            <span id="pos-quick-change-val" style="font-size: 15px; font-weight: 900; color: #22c55e; font-family: var(--font-mono);">₹0.00</span>
+                        </div>
+                    </div>
+
                     <!-- Multi-Action Checkout Grid -->
                     <div style="padding: 10px 14px; background: #0e0e12; border-top: 1px solid #1f1f24; display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px;">
                         <button class="pos-btn-checkout" id="pos-btn-quick-cash" onclick="PosView.quickCashCheckout()" ${this.cart.length === 0 ? 'disabled' : ''} style="background: #22c55e; color: #09090b; border-color: #22c55e; font-weight: 800; font-size: 13px;" title="1-Click Instant Cash Settle (F9)">
@@ -313,6 +333,7 @@ const PosView = {
             <!-- Floating Keyboard Shortcuts Footer Strip -->
             <div class="pos-shortcuts-strip">
                 <div><span class="pos-key-badge">Ctrl+1..4</span>Switch Cart</div>
+                <div><span class="pos-key-badge">F1</span>Search</div>
                 <div><span class="pos-key-badge">F2</span>Scan</div>
                 <div><span class="pos-key-badge">F3</span>Cust</div>
                 <div><span class="pos-key-badge">F4</span>Coupon</div>
@@ -659,46 +680,99 @@ const PosView = {
             const now = ctx.currentTime;
 
             if (type === 'scan') {
+                // Crisp dual-chirp retail scanner sound (2200Hz -> 2800Hz)
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1200, now);
-                gain.gain.setValueAtTime(0.18, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.07);
+                osc.frequency.setValueAtTime(2200, now);
+                osc.frequency.exponentialRampToValueAtTime(2800, now + 0.04);
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.07);
+                osc.stop(now + 0.05);
+            } else if (type === 'add') {
+                // Warm chime
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.09);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+            } else if (type === 'cash_drawer') {
+                // Solenoid click + cash bell chime
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'square';
+                osc1.frequency.setValueAtTime(140, now);
+                gain1.gain.setValueAtTime(0.25, now);
+                gain1.gain.linearRampToValueAtTime(0.01, now + 0.03);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.03);
+
+                [1046.50, 1318.51, 1567.98].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + 0.03 + (i * 0.03));
+                    gain.gain.setValueAtTime(0.2, now + 0.03 + (i * 0.03));
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.35);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + 0.03 + (i * 0.03));
+                    osc.stop(now + 0.35);
+                });
             } else if (type === 'success') {
                 [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.08));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.08));
-                    gain.gain.linearRampToValueAtTime(0.01, now + (i * 0.08) + 0.15);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.07));
+                    gain.gain.setValueAtTime(0.2, now + (i * 0.07));
+                    gain.gain.linearRampToValueAtTime(0.01, now + (i * 0.07) + 0.16);
                     osc.connect(gain);
                     gain.connect(ctx.destination);
-                    osc.start(now + (i * 0.08));
-                    osc.stop(now + (i * 0.08) + 0.15);
+                    osc.start(now + (i * 0.07));
+                    osc.stop(now + (i * 0.07) + 0.16);
                 });
             } else if (type === 'error') {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(220, now);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(140, now + 0.09);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.2);
+                osc.stop(now + 0.22);
+            } else if (type === 'park') {
+                [440, 554.37].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.06));
+                    gain.gain.setValueAtTime(0.15, now + (i * 0.06));
+                    gain.gain.linearRampToValueAtTime(0.01, now + (i * 0.06) + 0.12);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + (i * 0.06));
+                    osc.stop(now + (i * 0.06) + 0.12);
+                });
             }
         } catch (_) {}
     },
 
     // --------------------------------------------------------------------------
-    // KEYBOARD MASTER SHORTCUTS (Ctrl+1..4, F2..F10)
+    // KEYBOARD MASTER SHORTCUTS (Ctrl+1..4, F1..F10)
     // --------------------------------------------------------------------------
     setupKeyboardShortcuts() {
         if (this._keyHandler) {
@@ -708,6 +782,9 @@ const PosView = {
             if (e.ctrlKey && e.key >= '1' && e.key <= '4') {
                 e.preventDefault();
                 this.switchCartSlot(parseInt(e.key) - 1);
+            } else if (e.key === 'F1') {
+                e.preventDefault();
+                document.getElementById('pos-search')?.focus();
             } else if (e.key === 'F2') {
                 e.preventDefault();
                 document.getElementById('pos-barcode-scanner')?.focus();
@@ -733,6 +810,11 @@ const PosView = {
             } else if (e.key === 'F10') {
                 e.preventDefault();
                 this.openCustomerDisplay();
+            } else if (e.key === 'Delete' && !['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) {
+                e.preventDefault();
+                if (this.cart.length > 0 && confirm('Clear active POS cart?')) {
+                    this.clearCart();
+                }
             } else if (e.key === 'Escape') {
                 if (document.getElementById('modal-pos-checkout')?.style.display === 'flex') {
                     this.closeCheckoutModal();
@@ -1461,6 +1543,11 @@ const PosView = {
         this.redeemedPoints = 0;
         this.activePromo = null;
         this.promoDiscountBps = 0;
+        this.quickCashTendered = 0;
+        const changeBox = document.getElementById('pos-quick-change-box');
+        if (changeBox) changeBox.style.display = 'none';
+        const hint = document.getElementById('pos-quick-tender-hint');
+        if (hint) hint.innerText = 'Instant Cash Calculation';
         this.refreshCartUI();
         this.syncCustomerDisplay();
     },
@@ -1486,29 +1573,98 @@ const PosView = {
         }
 
         return this.cart.map((item, idx) => {
+            const isReturn = item.is_return === true;
             const unit = (item.unit_price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-            const lineGross = (item.quantity * item.unit_price) / 100;
+            const lineGross = ((item.quantity * item.unit_price) / 100) * (isReturn ? -1 : 1);
             return `
-                <div class="pos-cart-line">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 700; color: #fff; font-size: 13px;">${item.name}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
-                            ₹${unit} each
-                            ${item.discount_bps > 0 ? `<span style="color: #4ade80;"> • ${item.discount_bps / 100}% off</span>` : ''}
+                <div class="pos-cart-line" style="${isReturn ? 'background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444;' : ''}">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 700; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</span>
+                            ${isReturn ? '<span class="shadcn-badge red" style="font-size: 9px; padding: 1px 5px;">RETURN</span>' : ''}
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            <span>₹${unit} each</span>
+                            ${item.discount_bps > 0 ? `<span style="color: #4ade80;">• ${item.discount_bps / 100}% off</span>` : ''}
+                            <button class="shadcn-btn-secondary" style="height: 18px; padding: 0 5px; font-size: 9.5px; color: #f59e0b;" onclick="PosView.promptLineDiscount(${idx})" title="Custom item discount">% Disc</button>
+                            <button class="shadcn-btn-secondary" style="height: 18px; padding: 0 5px; font-size: 9.5px; color: ${isReturn ? '#22c55e' : '#ef4444'};" onclick="PosView.toggleItemReturn(${idx})" title="Toggle Return / Refund">${isReturn ? 'Mark Sale' : '↺ Return'}</button>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 4px; margin: 0 8px;">
                         <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 12px; height: 26px;" onclick="PosView.updateQty(${idx}, -1)">-</button>
                         <span style="font-weight: 700; font-family: var(--font-mono); width: 26px; text-align: center; color: #fff;">${item.quantity}</span>
                         <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 12px; height: 26px;" onclick="PosView.updateQty(${idx}, 1)">+</button>
                     </div>
-                    <div style="width: 80px; text-align: right; font-weight: 700; font-family: var(--font-mono); color: #fff; font-size: 13px;">
-                        ₹${lineGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <div style="width: 80px; text-align: right; font-weight: 700; font-family: var(--font-mono); color: ${isReturn ? '#ef4444' : '#fff'}; font-size: 13px;">
+                        ${isReturn ? '-' : ''}₹${Math.abs(lineGross).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </div>
-                    <button style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 16px; line-height: 1;" onclick="PosView.removeFromCart(${idx})" title="Remove">&times;</button>
+                    <button style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 16px; line-height: 1; margin-left: 4px;" onclick="PosView.removeFromCart(${idx})" title="Remove">&times;</button>
                 </div>
             `;
         }).join('');
+    },
+
+    toggleItemReturn(index) {
+        if (!this.cart[index]) return;
+        this.cart[index].is_return = !this.cart[index].is_return;
+        this.playSound(this.cart[index].is_return ? 'error' : 'scan');
+        this.refreshCartUI();
+        App.showToast(this.cart[index].is_return ? `Marked as Return: ${this.cart[index].name}` : `Marked as Regular Sale: ${this.cart[index].name}`, 'info');
+    },
+
+    promptLineDiscount(index) {
+        if (!this.cart[index]) return;
+        const currentPct = (this.cart[index].discount_bps || 0) / 100;
+        const input = prompt(`Enter item discount percentage for "${this.cart[index].name}" (0 - 50%):`, currentPct.toString());
+        if (input !== null) {
+            const val = parseFloat(input);
+            if (!isNaN(val) && val >= 0 && val <= 100) {
+                this.cart[index].discount_bps = Math.round(val * 100);
+                this.playSound('scan');
+                this.refreshCartUI();
+                App.showToast(`Applied ${val}% discount to ${this.cart[index].name}`, 'success');
+            } else if (isNaN(val) || val < 0) {
+                App.showToast('Invalid discount percentage', 'warning');
+            }
+        }
+    },
+
+    quickCashTendered: 0,
+
+    handleQuickCashPreset(preset) {
+        if (this.cart.length === 0) return;
+        const q = this.calculateQuotation();
+        
+        if (preset === 'EXACT') {
+            this.quickCashTendered = q.grand_total;
+            this.quickCashCheckout();
+            return;
+        }
+
+        const addCents = Number(preset) * 100;
+        if (this.quickCashTendered < q.grand_total) {
+            this.quickCashTendered = addCents;
+        } else {
+            this.quickCashTendered += addCents;
+        }
+
+        this.playSound('scan');
+        const changeDue = Math.max(0, this.quickCashTendered - q.grand_total);
+        const changeBox = document.getElementById('pos-quick-change-box');
+        const changeVal = document.getElementById('pos-quick-change-val');
+        const hint = document.getElementById('pos-quick-tender-hint');
+        const quickBtn = document.getElementById('pos-btn-quick-cash');
+
+        if (changeBox && changeVal) {
+            changeBox.style.display = 'flex';
+            changeVal.innerText = `₹${(changeDue / 100).toFixed(2)}`;
+        }
+        if (hint) {
+            hint.innerText = `Tendered: ₹${(this.quickCashTendered / 100).toFixed(0)}`;
+        }
+        if (quickBtn) {
+            quickBtn.innerText = `Complete Cash (Change ₹${(changeDue / 100).toFixed(2)}) [F9]`;
+        }
     },
 
     toggleInterstate(checked) {
@@ -1534,17 +1690,19 @@ const PosView = {
         let totalDiscountCents = 0;
 
         const computedItems = this.cart.map(item => {
+            const isReturn = item.is_return === true;
+            const sign = isReturn ? -1 : 1;
             const qty = Math.max(0.001, Number(item.quantity) || 1);
             const unitPrice = Number(item.unit_price) || 0;
-            const gross = Math.round(qty * unitPrice);
+            const gross = Math.round(qty * unitPrice) * sign;
             subtotal += gross;
 
-            const itemDiscBps = Number(item.discount_bps) || 0;
-            const effectiveDiscBps = Math.min(10000, itemDiscBps + this.promoDiscountBps);
-            const discAmount = effectiveDiscBps > 0 ? Math.round((gross * effectiveDiscBps) / 10000) : 0;
+            const itemDiscBps = isReturn ? 0 : (Number(item.discount_bps) || 0);
+            const effectiveDiscBps = Math.min(10000, itemDiscBps + (isReturn ? 0 : this.promoDiscountBps));
+            const discAmount = effectiveDiscBps > 0 ? Math.round((Math.abs(gross) * effectiveDiscBps) / 10000) * sign : 0;
             totalDiscountCents += discAmount;
 
-            const netTaxable = Math.max(0, gross - discAmount);
+            const netTaxable = gross - discAmount;
             taxable += netTaxable;
 
             const taxRate = item.tax_rate_bps !== undefined ? Number(item.tax_rate_bps) : 1800;
@@ -1568,6 +1726,7 @@ const PosView = {
 
             return {
                 ...item,
+                is_return: isReturn,
                 quantity: qty,
                 unit_price: unitPrice,
                 line_gross: gross,
@@ -1628,6 +1787,7 @@ const PosView = {
         const tax = (q.tax_total / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
         const disc = (q.discount_total / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
         const grand = (q.grand_total / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        const earnedPoints = Math.max(0, Math.floor(q.grand_total / 1000));
 
         return `
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px;">
@@ -1647,6 +1807,10 @@ const PosView = {
             <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid #222226; font-size: 16px; font-weight: 800;">
                 <span style="color: #fff;">Net Payable</span>
                 <span style="font-family: var(--font-mono); color: #22c55e;">₹${grand}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #c084fc; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #22222a;">
+                <span>⭐ Loyalty Points Earned:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono);">+${earnedPoints} pts</span>
             </div>
         `;
     },
@@ -1844,6 +2008,9 @@ const PosView = {
             quickBtn.innerText = 'Committing Sale to Supabase...';
         }
 
+        const tendered = this.quickCashTendered > 0 ? Math.max(q.grand_total, this.quickCashTendered) : q.grand_total;
+        const changeDue = Math.max(0, tendered - q.grand_total);
+
         try {
             const invoice = await window.SupabaseClient.checkoutSale({
                 customer_name: this.currentCustomer.name,
@@ -1851,8 +2018,8 @@ const PosView = {
                 is_interstate: this.isInterState,
                 counter_name: this.activeCounter ? this.activeCounter.name : 'Counter 01',
                 payment_method: 'CASH',
-                amount_tendered_cents: q.grand_total,
-                change_due_cents: 0,
+                amount_tendered_cents: tendered,
+                change_due_cents: changeDue,
                 discount_total: q.discount_total,
                 warehouse_id: "20000000-0000-0000-0000-000000000001",
                 items: q.items,
@@ -1866,8 +2033,8 @@ const PosView = {
             });
 
             this.lastInvoice = { ...invoice, quotation: q };
-            this.playSound('success');
-            App.showToast(`Bill ${invoice.invoice_number} saved to Supabase!`, 'success');
+            this.playSound('cash_drawer');
+            App.showToast(`Bill ${invoice.invoice_number} saved to Supabase! Change: ₹${(changeDue / 100).toFixed(2)}`, 'success');
 
             if (window.PosHardware && window.PosHardware.kickCashDrawer) {
                 window.PosHardware.kickCashDrawer().catch(() => {});

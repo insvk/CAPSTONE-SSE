@@ -68,83 +68,105 @@ const InventoryView = {
         const valFormatted = (totalValuation / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
         container.innerHTML = `
-            <!-- Top Metric Summaries -->
-            <div class="shadcn-metrics-grid" style="margin-bottom: 20px;">
-                <div class="shadcn-metric-card">
-                    <span class="shadcn-metric-label">TOTAL PHYSICAL STOCK</span>
-                    <div class="shadcn-metric-val">${totalUnits.toLocaleString()} <span style="font-size: 13px; font-weight: 400; color: var(--text-muted);">units</span></div>
-                    <span class="shadcn-trend-pill up">Verified On-Hand Across Hubs</span>
-                </div>
-                <div class="shadcn-metric-card">
-                    <span class="shadcn-metric-label">TOTAL VALUATION (WAC)</span>
-                    <div class="shadcn-metric-val" style="color: var(--accent-green);">&#8377;${valFormatted}</div>
-                    <span class="shadcn-trend-pill up">Weighted Average Cost Basis</span>
-                </div>
-                <div class="shadcn-metric-card">
-                    <span class="shadcn-metric-label">LOW STOCK ITEMS</span>
-                    <div class="shadcn-metric-val" style="color: ${lowStockCount > 0 ? '#ef4444' : '#fff'};">
-                        ${lowStockCount} <span style="font-size: 13px; font-weight: 500; color: ${lowStockCount > 0 ? '#ef4444' : '#22c55e'};">${lowStockCount > 0 ? 'Reorder Needed' : 'Optimal'}</span>
+            <!-- Top Metric Summaries (Responsive Auto-Fit Grid) -->
+            <div class="shadcn-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 22px;">
+                <div class="shadcn-metric-card" style="padding: 18px 20px; background: #16161c; border: 1px solid #22222a; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; min-height: 112px;">
+                    <span class="shadcn-metric-label" style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">TOTAL PHYSICAL STOCK</span>
+                    <div class="shadcn-metric-val" style="font-size: 24px; font-weight: 800; font-family: var(--font-mono); margin: 6px 0; color: #ffffff;">
+                        ${totalUnits.toLocaleString()} <span style="font-size: 13px; font-weight: 400; color: var(--text-muted);">units</span>
                     </div>
-                    <span class="shadcn-trend-pill ${lowStockCount > 0 ? 'down' : 'up'}">${lowStockCount > 0 ? 'Trigger Auto Purchase Order' : 'All SKUs above threshold'}</span>
+                    <span class="shadcn-trend-pill up" style="width: fit-content; font-size: 11px; padding: 2px 8px; border-radius: 4px;">Verified On-Hand Across Hubs</span>
                 </div>
-                <div class="shadcn-metric-card">
-                    <span class="shadcn-metric-label">ACTIVE WAREHOUSE HUBS</span>
-                    <div class="shadcn-metric-val" style="color: #60a5fa;">2 Active Hubs</div>
-                    <span class="shadcn-trend-pill up">Mumbai Central & Bandra POS</span>
+                <div class="shadcn-metric-card" style="padding: 18px 20px; background: #16161c; border: 1px solid #22222a; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; min-height: 112px;">
+                    <span class="shadcn-metric-label" style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">TOTAL VALUATION (WAC)</span>
+                    <div class="shadcn-metric-val" style="font-size: 24px; font-weight: 800; font-family: var(--font-mono); margin: 6px 0; color: #22c55e;">
+                        &#8377;${valFormatted}
+                    </div>
+                    <span class="shadcn-trend-pill up" style="width: fit-content; font-size: 11px; padding: 2px 8px; border-radius: 4px;">Weighted Average Cost Basis</span>
+                </div>
+                <div class="shadcn-metric-card" style="padding: 18px 20px; background: #16161c; border: 1px solid #22222a; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; min-height: 112px;">
+                    <span class="shadcn-metric-label" style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">LOW STOCK THRESHOLD</span>
+                    <div class="shadcn-metric-val" style="font-size: 24px; font-weight: 800; font-family: var(--font-mono); margin: 6px 0; color: ${lowStockCount > 0 ? '#ef4444' : '#fff'};">
+                        ${lowStockCount} <span style="font-size: 13px; font-weight: 600; color: ${lowStockCount > 0 ? '#ef4444' : '#22c55e'};">${lowStockCount > 0 ? 'Reorder Needed' : 'Optimal'}</span>
+                    </div>
+                    <span class="shadcn-trend-pill ${lowStockCount > 0 ? 'down' : 'up'}" style="width: fit-content; font-size: 11px; padding: 2px 8px; border-radius: 4px;">
+                        ${lowStockCount > 0 ? 'Trigger Auto Purchase Order' : 'All SKUs above threshold'}
+                    </span>
+                </div>
+                <div class="shadcn-metric-card" style="padding: 18px 20px; background: #16161c; border: 1px solid #22222a; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; min-height: 112px;">
+                    <span class="shadcn-metric-label" style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">ACTIVE WAREHOUSE HUBS</span>
+                    <div class="shadcn-metric-val" style="font-size: 24px; font-weight: 800; font-family: var(--font-mono); margin: 6px 0; color: #60a5fa;">
+                        2 Active Hubs
+                    </div>
+                    <span class="shadcn-trend-pill up" style="width: fit-content; font-size: 11px; padding: 2px 8px; border-radius: 4px;">Mumbai Central &amp; Bandra POS</span>
                 </div>
             </div>
 
             <!-- Master Inventory Workspace Card -->
-            <div class="shadcn-table-wrap">
-                <!-- Top Action & Navigation Bar -->
-                <div class="shadcn-table-header" style="flex-wrap: wrap; gap: 12px;">
-                    <div class="shadcn-tab-pills">
-                        <button class="shadcn-tab-btn ${this.activeTab === 'balances' ? 'active' : ''}" onclick="InventoryView.switchTab('balances')">
+            <div class="shadcn-table-wrap" style="background: #141419; border: 1px solid #24242f; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <!-- Primary Action Header -->
+                <div style="padding: 16px 20px; border-bottom: 1px solid #22222c; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <div style="font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">Stock Ledger &amp; Storage Hubs</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+                            Real-time perpetual inventory balances, multi-location stock transfers, and valuation ledger
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="shadcn-btn-secondary" style="height: 34px; font-size: 12px; font-weight: 600; padding: 0 14px; border-color: rgba(96, 165, 250, 0.4); color: #60a5fa;" onclick="InventoryView.showTransferModal()" title="Transfer stock between warehouse hubs">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px; vertical-align: middle;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                            Inter-Hub Transfer
+                        </button>
+                        <button class="shadcn-btn-secondary" style="height: 34px; font-size: 12px; font-weight: 600; padding: 0 14px; border-color: rgba(167, 139, 250, 0.4); color: #c084fc;" onclick="InventoryView.showReconcileModal()" title="Physical cycle count reconciliation">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px; vertical-align: middle;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                            Cycle Count Audit
+                        </button>
+                        <button class="shadcn-btn-primary" style="height: 34px; font-size: 12px; font-weight: 700; padding: 0 16px; background: #22c55e; border-color: #22c55e; color: #09090b;" onclick="InventoryView.showAdjustModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 5px; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Stock Adjustment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Secondary Tab & Tools Bar -->
+                <div style="padding: 12px 20px; background: #111116; border-bottom: 1px solid #22222a; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div class="shadcn-tab-pills" style="display: flex; gap: 6px; background: #181820; padding: 3px; border-radius: 8px; border: 1px solid #272733;">
+                        <button class="shadcn-tab-btn ${this.activeTab === 'balances' ? 'active' : ''}" style="height: 30px; padding: 0 14px; font-size: 12px; font-weight: 600; border-radius: 6px;" onclick="InventoryView.switchTab('balances')">
                             Warehouse Balances (${this.balances.length})
                         </button>
-                        <button class="shadcn-tab-btn ${this.activeTab === 'movements' ? 'active' : ''}" onclick="InventoryView.switchTab('movements')">
+                        <button class="shadcn-tab-btn ${this.activeTab === 'movements' ? 'active' : ''}" style="height: 30px; padding: 0 14px; font-size: 12px; font-weight: 600; border-radius: 6px;" onclick="InventoryView.switchTab('movements')">
                             Stock Movement Ledger (${this.movements.length})
                         </button>
-                        <button class="shadcn-tab-btn ${this.activeTab === 'analytics' ? 'active' : ''}" onclick="InventoryView.switchTab('analytics')">
+                        <button class="shadcn-tab-btn ${this.activeTab === 'analytics' ? 'active' : ''}" style="height: 30px; padding: 0 14px; font-size: 12px; font-weight: 600; border-radius: 6px;" onclick="InventoryView.switchTab('analytics')">
                             Valuation &amp; Stock Analytics
                         </button>
                     </div>
 
-                    <!-- Multiple Stock Management Options -->
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 12px; padding: 0 12px; color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);" onclick="InventoryView.showAutoPOModal()" title="Auto-generate Purchase Orders for low-stock SKUs">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="shadcn-btn-secondary" style="height: 30px; font-size: 11.5px; padding: 0 11px; color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);" onclick="InventoryView.showAutoPOModal()" title="Auto-generate Purchase Orders for low-stock SKUs">
                             Auto PO (Low Stock)
                         </button>
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 12px; padding: 0 12px; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4);" onclick="InventoryView.openBarcodeStudio()" title="Design &amp; Print Thermal Barcode Labels &amp; Shelf Talkers">
+                        <button class="shadcn-btn-secondary" style="height: 30px; font-size: 11.5px; padding: 0 11px; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4);" onclick="InventoryView.openBarcodeStudio()" title="Design &amp; Print Thermal Barcode Labels &amp; Shelf Talkers">
                             Barcode Studio
                         </button>
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 12px; padding: 0 12px;" onclick="InventoryView.showBulkImportModal()" title="Import stock from CSV / spreadsheet data">
+                        <button class="shadcn-btn-secondary" style="height: 30px; font-size: 11.5px; padding: 0 11px;" onclick="InventoryView.showBulkImportModal()" title="Import stock from CSV / spreadsheet data">
                             Import Stock (CSV)
-                        </button>
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 12px; padding: 0 12px;" onclick="InventoryView.showTransferModal()" title="Transfer stock between warehouse hubs">
-                            Inter-Hub Transfer
-                        </button>
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 12px; padding: 0 12px;" onclick="InventoryView.showReconcileModal()" title="Physical cycle count reconciliation">
-                            Cycle Count Audit
-                        </button>
-                        <button class="shadcn-btn-primary" style="height: 32px; font-size: 12px; padding: 0 14px;" onclick="InventoryView.showAdjustModal()">
-                            + Stock Adjustment
                         </button>
                     </div>
                 </div>
 
                 <!-- Secondary Filter & Categorization Bar (only for balances tab) -->
-                <div id="inv-filter-bar" style="padding: 12px 20px; background: #141417; border-bottom: 1px solid var(--border-color); display: ${this.activeTab === 'balances' ? 'flex' : 'none'}; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <div id="inv-filter-bar" style="padding: 12px 20px; background: #131318; border-bottom: 1px solid #202028; display: ${this.activeTab === 'balances' ? 'flex' : 'none'}; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex: 1;">
                         <!-- Warehouse Filter -->
-                        <select id="filter-inv-warehouse" class="shadcn-select" style="height: 32px; font-size: 12px; width: 170px;" onchange="InventoryView.setWarehouseFilter(this.value)">
+                        <select id="filter-inv-warehouse" class="shadcn-select" style="height: 34px; font-size: 12px; min-width: 175px; border-radius: 6px;" onchange="InventoryView.setWarehouseFilter(this.value)">
                             <option value="all">All Storage Hubs</option>
                             <option value="20000000-0000-0000-0000-000000000001">Mumbai Central Hub</option>
                             <option value="20000000-0000-0000-0000-000000000002">Bandra POS Store</option>
                         </select>
 
                         <!-- Stock Status Categorization Filter -->
-                        <select id="filter-inv-status" class="shadcn-select" style="height: 32px; font-size: 12px; width: 160px;" onchange="InventoryView.setStatusFilter(this.value)">
+                        <select id="filter-inv-status" class="shadcn-select" style="height: 34px; font-size: 12px; min-width: 170px; border-radius: 6px;" onchange="InventoryView.setStatusFilter(this.value)">
                             <option value="all">All Stock Statuses</option>
                             <option value="low">Low Stock (Reorder)</option>
                             <option value="in_stock">Healthy In-Stock (>0)</option>
@@ -152,18 +174,20 @@ const InventoryView = {
                         </select>
 
                         <!-- Search Box -->
-                        <input type="text" id="filter-inv-search" class="shadcn-input" placeholder="Search SKU or Product Name..." style="height: 32px; font-size: 12px; width: 220px;" oninput="InventoryView.setSearchQuery(this.value)" />
+                        <div style="position: relative; flex: 1; min-width: 220px; max-width: 380px;">
+                            <input type="text" id="filter-inv-search" class="shadcn-input" placeholder="Search SKU or Product Name..." style="height: 34px; font-size: 12px; width: 100%; border-radius: 6px; padding-left: 12px;" oninput="InventoryView.setSearchQuery(this.value)" />
+                        </div>
                     </div>
 
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button class="shadcn-btn-secondary" style="height: 32px; font-size: 11px; padding: 0 10px;" onclick="InventoryView.exportLedgerCSV()" title="Export current filtered view to CSV">
+                        <button class="shadcn-btn-secondary" style="height: 34px; font-size: 11.5px; font-weight: 600; padding: 0 12px; border-radius: 6px;" onclick="InventoryView.exportLedgerCSV()" title="Export current filtered view to CSV">
                             Export Balances CSV
                         </button>
                     </div>
                 </div>
 
-                <!-- Table Content Container -->
-                <div id="inv-table-content" style="overflow-x: auto;">
+                <!-- Table Content Container with Guaranteed Smooth Horizontal Scroll -->
+                <div id="inv-table-content" style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
                     ${this.renderActiveTabContent()}
                 </div>
             </div>
@@ -624,19 +648,19 @@ const InventoryView = {
         }
 
         return `
-            <table class="shadcn-table">
+            <table class="shadcn-table" style="min-width: 1220px; width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th>SKU / PRODUCT</th>
-                        <th>STORAGE LOCATION</th>
-                        <th style="text-align: right;">ON-HAND (INSTANT ADJUST)</th>
-                        <th style="text-align: right;">RESERVED</th>
-                        <th style="text-align: right;">AVAILABLE</th>
-                        <th style="text-align: right;">SELLING PRICE (MRP)</th>
-                        <th style="text-align: right;">UNIT COST (WAC)</th>
-                        <th style="text-align: right;">TOTAL VALUATION</th>
-                        <th style="text-align: center;">STATUS</th>
-                        <th style="text-align: right;">ACTIONS</th>
+                        <th style="min-width: 190px; padding: 12px 14px;">SKU / PRODUCT</th>
+                        <th style="min-width: 140px; padding: 12px 14px;">STORAGE LOCATION</th>
+                        <th style="min-width: 140px; padding: 12px 14px; text-align: right;">ON-HAND (INSTANT)</th>
+                        <th style="min-width: 85px; padding: 12px 14px; text-align: right;">RESERVED</th>
+                        <th style="min-width: 90px; padding: 12px 14px; text-align: right;">AVAILABLE</th>
+                        <th style="min-width: 120px; padding: 12px 14px; text-align: right;">SELLING PRICE</th>
+                        <th style="min-width: 110px; padding: 12px 14px; text-align: right;">COST (WAC)</th>
+                        <th style="min-width: 120px; padding: 12px 14px; text-align: right;">VALUATION</th>
+                        <th style="min-width: 100px; padding: 12px 14px; text-align: center;">STATUS</th>
+                        <th style="min-width: 290px; padding: 12px 14px; text-align: right;">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -648,47 +672,49 @@ const InventoryView = {
 
                         return `
                             <tr id="row-bal-${b.id}">
-                                <td>
+                                <td style="padding: 12px 14px;">
                                     <div style="font-weight: 700; color: #fff;">${b.sku}</div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">${b.product_name}</div>
                                 </td>
-                                <td><span class="shadcn-badge blue">${b.warehouse_name}</span></td>
-                                <td style="text-align: right;">
-                                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
-                                        <button class="shadcn-btn-secondary" style="width: 22px; height: 22px; padding: 0; font-size: 13px; font-weight: 700; line-height: 1; border-color: #3f3f46;" onclick="InventoryView.quickInlineAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}', -1, ${b.quantity_on_hand}, '${b.id}')" title="Deduct 1 unit instant count">-</button>
-                                        <span id="onhand-val-${b.id}" style="font-weight: 700; font-family: var(--font-mono); color: #fff; min-width: 32px; text-align: right;">${b.quantity_on_hand}</span>
-                                        <button class="shadcn-btn-secondary" style="width: 22px; height: 22px; padding: 0; font-size: 13px; font-weight: 700; line-height: 1; border-color: #3f3f46;" onclick="InventoryView.quickInlineAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}', 1, ${b.quantity_on_hand}, '${b.id}')" title="Add 1 unit instant count">+</button>
+                                <td style="padding: 12px 14px;"><span class="shadcn-badge blue" style="white-space: nowrap;">${b.warehouse_name}</span></td>
+                                <td style="text-align: right; padding: 12px 14px;">
+                                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                                        <button class="shadcn-btn-secondary" style="width: 24px; height: 24px; padding: 0; font-size: 13px; font-weight: 700; line-height: 1; border-color: #3f3f46; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" onclick="InventoryView.quickInlineAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}', -1, ${b.quantity_on_hand}, '${b.id}')" title="Deduct 1 unit instant count">-</button>
+                                        <span id="onhand-val-${b.id}" style="font-weight: 700; font-family: var(--font-mono); color: #fff; min-width: 36px; text-align: center; display: inline-block;">${b.quantity_on_hand}</span>
+                                        <button class="shadcn-btn-secondary" style="width: 24px; height: 24px; padding: 0; font-size: 13px; font-weight: 700; line-height: 1; border-color: #3f3f46; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" onclick="InventoryView.quickInlineAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}', 1, ${b.quantity_on_hand}, '${b.id}')" title="Add 1 unit instant count">+</button>
                                     </div>
                                 </td>
-                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${b.quantity_reserved}</td>
-                                <td id="avail-val-${b.id}" style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${b.quantity_available > 0 ? '#22c55e' : '#ef4444'};">${b.quantity_available}</td>
-                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600; color: #60a5fa;">&#8377;${sell}</td>
-                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">&#8377;${wac}</td>
-                                <td id="val-val-${b.id}" style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff;">&#8377;${totalVal}</td>
-                                <td style="text-align: center;">
-                                    <span class="shadcn-badge ${isLow ? 'red' : 'green'}">
+                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted); padding: 12px 14px;">${b.quantity_reserved}</td>
+                                <td id="avail-val-${b.id}" style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${b.quantity_available > 0 ? '#22c55e' : '#ef4444'}; padding: 12px 14px;">${b.quantity_available}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600; color: #60a5fa; padding: 12px 14px;">&#8377;${sell}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted); padding: 12px 14px;">&#8377;${wac}</td>
+                                <td id="val-val-${b.id}" style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff; padding: 12px 14px;">&#8377;${totalVal}</td>
+                                <td style="text-align: center; padding: 12px 14px;">
+                                    <span class="shadcn-badge ${isLow ? 'red' : 'green'}" style="white-space: nowrap;">
                                         ${isLow ? 'LOW STOCK' : 'IN STOCK'}
                                     </span>
                                 </td>
-                                <td style="text-align: right; white-space: nowrap;">
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);" onclick="InventoryView.openPriceModal('${b.product_id}', '${b.sku}', '${b.product_name}', ${b.selling_price || 0}, ${b.weighted_avg_cost || 0})" title="Edit Selling Price &amp; Cost Price anytime">
-                                        &#8377; Price
-                                    </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4);" onclick="InventoryView.openBarcodeStudio('${b.product_id}')" title="Print Barcode Labels">
-                                        Label
-                                    </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #34d399; border-color: rgba(52, 211, 153, 0.4);" onclick="InventoryView.openSetCountModal('${b.warehouse_id}', '${b.product_id}', '${b.sku}', '${b.product_name}', ${b.quantity_on_hand})" title="Set exact physical count">
-                                        Count
-                                    </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock (+/- delta)">
-                                        Adjust
-                                    </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openQuickTransfer('${b.warehouse_id}', '${b.product_id}')" title="Transfer to another hub">
-                                        Transfer
-                                    </button>
-                                    <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" onclick="InventoryView.zeroOutStock('${b.id}', '${b.product_id}', '${b.warehouse_id}', '${b.sku}')" title="Write off / zero out balance">
-                                        Write-Off
-                                    </button>
+                                <td style="text-align: right; white-space: nowrap; padding: 10px 14px;">
+                                    <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; color: #60a5fa; border-color: rgba(96, 165, 250, 0.4); border-radius: 4px;" onclick="InventoryView.openPriceModal('${b.product_id}', '${b.sku}', '${b.product_name}', ${b.selling_price || 0}, ${b.weighted_avg_cost || 0})" title="Edit Selling Price &amp; Cost Price anytime">
+                                            &#8377; Price
+                                        </button>
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4); border-radius: 4px;" onclick="InventoryView.openBarcodeStudio('${b.product_id}')" title="Print Barcode Labels">
+                                            Label
+                                        </button>
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; color: #34d399; border-color: rgba(52, 211, 153, 0.4); border-radius: 4px;" onclick="InventoryView.openSetCountModal('${b.warehouse_id}', '${b.product_id}', '${b.sku}', '${b.product_name}', ${b.quantity_on_hand})" title="Set exact physical count">
+                                            Count
+                                        </button>
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; border-radius: 4px;" onclick="InventoryView.openQuickAdjust('${b.warehouse_id}', '${b.product_id}', '${b.sku}')" title="Adjust stock (+/- delta)">
+                                            Adjust
+                                        </button>
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; border-radius: 4px;" onclick="InventoryView.openQuickTransfer('${b.warehouse_id}', '${b.product_id}')" title="Transfer to another hub">
+                                            Transfer
+                                        </button>
+                                        <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; font-weight: 600; color: #ef4444; border-color: rgba(239, 68, 68, 0.35); border-radius: 4px;" onclick="InventoryView.zeroOutStock('${b.id}', '${b.product_id}', '${b.warehouse_id}', '${b.sku}')" title="Write off / zero out balance">
+                                            Write-Off
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `;
@@ -704,17 +730,17 @@ const InventoryView = {
         }
 
         return `
-            <table class="shadcn-table">
+            <table class="shadcn-table" style="min-width: 1100px; width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th>DATE &amp; TIME</th>
-                        <th>SKU / PRODUCT</th>
-                        <th>STORAGE HUB</th>
-                        <th style="text-align: center;">TYPE</th>
-                        <th style="text-align: right;">QUANTITY</th>
-                        <th style="text-align: right;">PREV BALANCE</th>
-                        <th style="text-align: right;">NEW BALANCE</th>
-                        <th>REASON &amp; AUDIT NOTES</th>
+                        <th style="min-width: 160px; padding: 12px 14px;">DATE &amp; TIME</th>
+                        <th style="min-width: 200px; padding: 12px 14px;">SKU / PRODUCT</th>
+                        <th style="min-width: 140px; padding: 12px 14px;">STORAGE HUB</th>
+                        <th style="min-width: 120px; padding: 12px 14px; text-align: center;">TYPE</th>
+                        <th style="min-width: 110px; padding: 12px 14px; text-align: right;">QUANTITY DELTA</th>
+                        <th style="min-width: 110px; padding: 12px 14px; text-align: right;">PREV BALANCE</th>
+                        <th style="min-width: 110px; padding: 12px 14px; text-align: right;">NEW BALANCE</th>
+                        <th style="min-width: 200px; padding: 12px 14px;">REASON &amp; AUDIT NOTES</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -727,23 +753,23 @@ const InventoryView = {
 
                         return `
                             <tr>
-                                <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">${dateStr}</td>
-                                <td>
+                                <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); padding: 12px 14px;">${dateStr}</td>
+                                <td style="padding: 12px 14px;">
                                     <div style="font-weight: 700; color: #fff;">${m.sku || 'SKU'}</div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">${m.product_name || ''}</div>
                                 </td>
-                                <td><span class="shadcn-badge blue">${m.warehouse_name || 'Hub'}</span></td>
-                                <td style="text-align: center;">
-                                    <span class="shadcn-badge ${this.getMovementTypeBadge(m.movement_type)}">
+                                <td style="padding: 12px 14px;"><span class="shadcn-badge blue" style="white-space: nowrap;">${m.warehouse_name || 'Hub'}</span></td>
+                                <td style="text-align: center; padding: 12px 14px;">
+                                    <span class="shadcn-badge ${this.getMovementTypeBadge(m.movement_type)}" style="white-space: nowrap;">
                                         ${m.movement_type}
                                     </span>
                                 </td>
-                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${isPos ? '#22c55e' : '#ef4444'};">
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${isPos ? '#22c55e' : '#ef4444'}; padding: 12px 14px;">
                                     ${isPos ? '+' : ''}${m.quantity_delta}
                                 </td>
-                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${m.quantity_before}</td>
-                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff;">${m.quantity_after}</td>
-                                <td style="font-size: 12px; color: var(--text-secondary);">${m.reason || 'Standard movement'}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted); padding: 12px 14px;">${m.quantity_before}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff; padding: 12px 14px;">${m.quantity_after}</td>
+                                <td style="font-size: 12px; color: var(--text-secondary); padding: 12px 14px;">${m.reason || 'Standard movement'}</td>
                             </tr>
                         `;
                     }).join('')}
@@ -860,56 +886,58 @@ const InventoryView = {
                         <button class="shadcn-btn-secondary" style="height: 28px; font-size: 11px;" onclick="InventoryView.exportValuationCSV()">Export Valuation CSV</button>
                     </div>
 
-                    <table class="shadcn-table">
-                        <thead>
-                            <tr>
-                                <th>RANK</th>
-                                <th>SKU / PRODUCT</th>
-                                <th>STORAGE HUB</th>
-                                <th style="text-align: center;">PARETO CLASS</th>
-                                <th style="text-align: right;">ON-HAND</th>
-                                <th style="text-align: right;">UNIT COST (WAC)</th>
-                                <th style="text-align: right;">TOTAL VALUATION</th>
-                                <th style="text-align: right;">CUMULATIVE %</th>
-                                <th style="text-align: right;">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${items.map((item, idx) => {
-                                const wacFormatted = (item.wac / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-                                const valFmt = (item.value / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-                                const badgeClass = item.abcClass === 'A' ? 'yellow' : (item.abcClass === 'B' ? 'blue' : '');
+                    <div style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+                        <table class="shadcn-table" style="min-width: 1000px; width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 70px; padding: 12px 14px;">RANK</th>
+                                    <th style="min-width: 200px; padding: 12px 14px;">SKU / PRODUCT</th>
+                                    <th style="min-width: 140px; padding: 12px 14px;">STORAGE HUB</th>
+                                    <th style="min-width: 120px; padding: 12px 14px; text-align: center;">PARETO CLASS</th>
+                                    <th style="min-width: 100px; padding: 12px 14px; text-align: right;">ON-HAND</th>
+                                    <th style="min-width: 110px; padding: 12px 14px; text-align: right;">UNIT COST (WAC)</th>
+                                    <th style="min-width: 120px; padding: 12px 14px; text-align: right;">TOTAL VALUATION</th>
+                                    <th style="min-width: 110px; padding: 12px 14px; text-align: right;">CUMULATIVE %</th>
+                                    <th style="min-width: 150px; padding: 12px 14px; text-align: right;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.map((item, idx) => {
+                                    const wacFormatted = (item.wac / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                    const valFmt = (item.value / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                                    const badgeClass = item.abcClass === 'A' ? 'yellow' : (item.abcClass === 'B' ? 'blue' : '');
 
-                                return `
-                                    <tr>
-                                        <td style="font-family: var(--font-mono); color: var(--text-muted); font-weight: 600;">#${idx + 1}</td>
-                                        <td>
-                                            <div style="font-weight: 700; color: #fff;">${item.sku}</div>
-                                            <div style="font-size: 12px; color: var(--text-secondary);">${item.product_name}</div>
-                                        </td>
-                                        <td><span class="shadcn-badge blue">${item.warehouse_name}</span></td>
-                                        <td style="text-align: center;">
-                                            <span class="shadcn-badge ${badgeClass}" style="font-weight: 800;">
-                                                Class ${item.abcClass}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff;">${item.onHand}</td>
-                                        <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">&#8377;${wacFormatted}</td>
-                                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #22c55e;">&#8377;${valFmt}</td>
-                                        <td style="text-align: right; font-family: var(--font-mono); color: var(--text-secondary);">${item.cumPct.toFixed(1)}%</td>
-                                        <td style="text-align: right; white-space: nowrap;">
-                                            <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openBarcodeStudio('${item.product_id}')">
-                                                Label
-                                            </button>
-                                            <button class="shadcn-btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="InventoryView.openQuickAdjust(null, '${item.product_id}', '${item.sku}')">
-                                                Adjust
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
+                                    return `
+                                        <tr>
+                                            <td style="font-family: var(--font-mono); color: var(--text-muted); font-weight: 600; padding: 12px 14px;">#${idx + 1}</td>
+                                            <td style="padding: 12px 14px;">
+                                                <div style="font-weight: 700; color: #fff;">${item.sku}</div>
+                                                <div style="font-size: 12px; color: var(--text-secondary);">${item.product_name}</div>
+                                            </td>
+                                            <td style="padding: 12px 14px;"><span class="shadcn-badge blue" style="white-space: nowrap;">${item.warehouse_name}</span></td>
+                                            <td style="text-align: center; padding: 12px 14px;">
+                                                <span class="shadcn-badge ${badgeClass}" style="font-weight: 800; white-space: nowrap;">
+                                                    Class ${item.abcClass}
+                                                </span>
+                                            </td>
+                                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff; padding: 12px 14px;">${item.onHand}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted); padding: 12px 14px;">&#8377;${wacFormatted}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #22c55e; padding: 12px 14px;">&#8377;${valFmt}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono); color: var(--text-secondary); padding: 12px 14px;">${item.cumPct.toFixed(1)}%</td>
+                                            <td style="text-align: right; white-space: nowrap; padding: 12px 14px;">
+                                                <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px; margin-right: 4px;" onclick="InventoryView.openBarcodeStudio('${item.product_id}')">
+                                                    Label
+                                                </button>
+                                                <button class="shadcn-btn-secondary" style="height: 26px; padding: 0 8px; font-size: 11px;" onclick="InventoryView.openQuickAdjust(null, '${item.product_id}', '${item.sku}')">
+                                                    Adjust
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         `;
