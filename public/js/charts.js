@@ -101,7 +101,7 @@ const Charts = {
 
     // 2. Project Efficiency: Partial Circular Donut Meter
     // Recreates the exact ring gauge from bottom right of media_1794042981091_d0e45266.jpg
-    drawDonutMeter(canvasId, pct = 86) {
+    drawDonutMeter(canvasId, pct = 86, color = '#ffffff') {
         const canvas = typeof canvasId === 'string' ? document.getElementById(canvasId) : canvasId;
         if (!canvas) return;
 
@@ -126,30 +126,30 @@ const Charts = {
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Active Arc (Pure Crisp White)
+        // Active Arc (Pure Crisp White or Neon Emerald/Cyan)
         const totalAngle = 1.5 * Math.PI;
         const activeEnd = 0.75 * Math.PI + (pct / 100) * totalAngle;
 
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, activeEnd, false);
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = color;
         ctx.lineWidth = lineWidth;
         ctx.lineCap = 'round';
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+        ctx.shadowColor = color === '#ffffff' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(34, 197, 94, 0.4)';
         ctx.shadowBlur = 10 * dpr;
         ctx.stroke();
         ctx.shadowBlur = 0;
     },
 
-    // 3. Mini Sparklines & Histograms
-    drawSparkline(canvasId, points = [20, 35, 28, 45, 52, 48, 60], strokeColor = '#ffffff') {
+    // 3. Mini Sparklines & Histograms with smooth gradient area fill
+    drawSparkline(canvasId, points = [20, 35, 28, 45, 52, 48, 60], strokeColor = '#ffffff', fillColor = 'rgba(255, 255, 255, 0.15)') {
         const canvas = typeof canvasId === 'string' ? document.getElementById(canvasId) : canvasId;
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
-        const width = canvas.width = (canvas.offsetWidth || 200) * dpr;
-        const height = canvas.height = (canvas.offsetHeight || 40) * dpr;
+        const width = canvas.width = (canvas.offsetWidth || 180) * dpr;
+        const height = canvas.height = (canvas.offsetHeight || 42) * dpr;
 
         ctx.clearRect(0, 0, width, height);
 
@@ -157,8 +157,32 @@ const Charts = {
         const max = Math.max(...points);
         const range = (max - min) || 1;
         const stepX = width / (points.length - 1);
-        const getY = (val) => height - 4 * dpr - ((val - min) / range) * (height - 8 * dpr);
+        const getY = (val) => height - 6 * dpr - ((val - min) / range) * (height - 12 * dpr);
 
+        // Path for fill
+        ctx.beginPath();
+        ctx.moveTo(0, getY(points[0]));
+        for (let i = 1; i < points.length; i++) {
+            const xPrev = (i - 1) * stepX;
+            const yPrev = getY(points[i - 1]);
+            const xCurr = i * stepX;
+            const yCurr = getY(points[i]);
+            const cpX = (xPrev + xCurr) / 2;
+            ctx.bezierCurveTo(cpX, yPrev, cpX, yCurr, xCurr, yCurr);
+        }
+
+        if (fillColor) {
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            const grad = ctx.createLinearGradient(0, 0, 0, height);
+            grad.addColorStop(0, fillColor);
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+
+        // Re-draw stroke
         ctx.beginPath();
         ctx.moveTo(0, getY(points[0]));
         for (let i = 1; i < points.length; i++) {
@@ -172,7 +196,10 @@ const Charts = {
 
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 2 * dpr;
+        ctx.shadowColor = strokeColor;
+        ctx.shadowBlur = 4 * dpr;
         ctx.stroke();
+        ctx.shadowBlur = 0;
     },
 
     drawHistogram(canvasId, values = [4, 8, 6, 12, 10, 15, 18, 14, 20, 16]) {

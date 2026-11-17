@@ -1263,6 +1263,219 @@ body {
 .tblr-badge-red { background: rgba(239, 68, 68, 0.12) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
 .tblr-badge-dark, .tblr-badge-default { background: #27272a !important; color: #a1a1aa !important; border: 1px solid #3f3f46 !important; }
 
+/* ==============================================================================
+ * EXECUTIVE PRO DASHBOARD ENHANCEMENTS
+ * Enterprise Telemetry, Cloud Status Pulse, High-Density KPI Cards & Sparklines
+ * ============================================================================== */
+.dashboard-pro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-cloud-pulse {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11.5px;
+    color: #4ade80;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.12);
+}
+
+.beacon-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    position: relative;
+    display: inline-block;
+}
+
+.beacon-pulse::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    border: 2px solid #22c55e;
+    animation: beacon-ring 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    opacity: 0;
+}
+
+@keyframes beacon-ring {
+    0% { transform: scale(0.6); opacity: 0.9; }
+    50% { opacity: 0.4; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+.dashboard-action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.dashboard-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card-subtle);
+    color: #f4f4f5;
+    text-decoration: none;
+}
+
+.dashboard-action-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: #3f3f46;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.dashboard-action-btn.primary {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.dashboard-action-btn.primary:hover {
+    background: #1d4ed8;
+    border-color: #60a5fa;
+}
+
+.dashboard-metric-pro {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 140px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.dashboard-metric-pro:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
+}
+
+.dashboard-metric-pro::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    opacity: 0.6;
+}
+
+.dashboard-metric-pro.highlight-blue::before {
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+    opacity: 1;
+}
+
+.dashboard-metric-pro.highlight-green::before {
+    background: linear-gradient(90deg, #059669, #34d399);
+    opacity: 1;
+}
+
+.dashboard-metric-pro.highlight-amber::before {
+    background: linear-gradient(90deg, #d97706, #fbbf24);
+    opacity: 1;
+}
+
+.dashboard-sparkline-box {
+    margin-top: 10px;
+    height: 38px;
+    width: 100%;
+    position: relative;
+}
+
+.dashboard-sparkline-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.dashboard-telemetry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    letter-spacing: 0.3px;
+}
+
+.dashboard-stat-summary-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: 16px;
+}
+
+.dashboard-stat-summary-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dashboard-stat-summary-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.dashboard-stat-summary-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: var(--font-mono);
+}
+
+.dashboard-hub-breakdown-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
 /* Responsive Breakpoints */
 @media (max-width: 1200px) {
     .shadcn-metrics-grid {
